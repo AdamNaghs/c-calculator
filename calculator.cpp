@@ -81,8 +81,6 @@ void parse_expr(std::string input)
         func::table[LAST_VALUE] = func::Function(LAST_VALUE, empty_vec, { tok::OpToken(n) });
         std::cout << n << " = " << input << '\n';
     }
-
-
 }
 
 bool test_parse_and_rpn(const std::string& input, const std::string& expected_rpn, cmn::value expected_result)
@@ -234,10 +232,11 @@ int main(void)
     std::cout << test_parse_and_rpn("1 * s5", "", 0);
     parse_expr("var(x,y,z) = 15+x");
     parse_expr("add(x,y) = x + y");
-    parse_expr("add(1,add(1))");
+    parse_expr("add(1,add(1,1))");
     parse_expr("Func(x) = x^3");
     parse_expr("var(x) = 15+x");
     parse_expr("Larc(x) = x*Func(x/Func(x))");
+    parse_expr("Larc(x) = x * Func ( x )");
     parse_expr("vec(1)");
     parse_expr("1s5");
     parse_expr("vec = 1 + x");

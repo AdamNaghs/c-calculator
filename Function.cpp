@@ -18,7 +18,7 @@ namespace func {
 		return s.str();
 	}
 
-    std::vector<std::vector<tok::OpToken>> split_args(const std::vector<tok::OpToken>& argTokens) {
+    std::vector<std::vector<tok::OpToken>> split_args1(const std::vector<tok::OpToken>& argTokens) {
         std::vector<std::vector<tok::OpToken>> arguments;
         std::vector<tok::OpToken> currentArg;
 
@@ -43,38 +43,72 @@ namespace func {
         return arguments;
     }
 
+    std::vector<std::vector<tok::OpToken>> split_args(const std::vector<tok::OpToken>& argTokens) {
+        std::vector<std::vector<tok::OpToken>> arguments;
+        std::vector<tok::OpToken> currentArg;
+        int parenDepth = 0;
+
+        for (const auto& token : argTokens) {
+            auto t_type = token.GetType();
+            if (t_type == tok::TokenType::OPERATOR && token.GetOperator() == cmn::op::L_PAREN) {
+                parenDepth++;
+            }
+            else if (t_type == tok::TokenType::OPERATOR && token.GetOperator() == cmn::op::R_PAREN) {
+                parenDepth--;
+            }
+
+            if ((t_type == tok::TokenType::OPERATOR) && token.GetOperator() == cmn::op::COMMA ) {
+                if (parenDepth == 0)
+                {
+                    if (!currentArg.empty()) {
+                        arguments.push_back(currentArg);
+                        currentArg.clear();
+                    }
+                }
+                else
+                    currentArg.push_back(token);
+            }
+            else {
+                currentArg.push_back(token);
+            }
+        }
+
+        if (!currentArg.empty()) {
+            arguments.push_back(currentArg);
+        }
+
+        return arguments;
+    }
+
+
     std::vector<tok::OpToken> sub_params(std::vector<tok::OpToken> expr, std::vector<tok::OpToken> param_names, std::vector<std::vector<tok::OpToken>> v)
     {
         std::vector<int> func_idxs;
         int i = 0;
-        for (tok::OpToken t : expr)
-        {
-            if (t.GetType() == tok::FUNCTION)
-            {
-                func_idxs.push_back(i);
-            }
-            i++;
-        }
-        if (func_idxs.size() != param_names.size())
-        {
-            std::vector<tok::OpToken> t;
-            std::cerr << "Incorrent number of parameters given to 'sub_params'.";
-            return t;
-            throw std::runtime_error("Incorrent number of parameters give.");
-        }
+        //for (tok::OpToken t : expr)
+        //{
+        //    if (t.GetType() == tok::FUNCTION)
+        //    {
+        //        func_idxs.push_back(i);
+        //    }
+        //    i++;
+        //}
+        //if (func_idxs.size() != param_names.size())
+        //{
+        //    std::vector<tok::OpToken> t;
+        //    std::cerr << "Incorrent number of parameters given to 'sub_params'.";
+        //    return t;
+        //    throw std::runtime_error("Incorrent number of parameters give.");
+        //}
         int c = 0;
         for (tok::OpToken name : param_names)
         {
-            for (int i = 0; i < v.size(); i++)
+            for (int i = 0; i < expr.size(); i++)
             {
-
+                // set parameter to value
                 if (expr.at(i).GetType() == tok::FUNCTION && expr.at(i).GetName() == name.GetName())
                 {
-                    expr.erase(expr.begin() + i);
-
-                    v.at(0).insert(v.at(0).begin(), tok::OpToken(cmn::L_PAREN));
-                    v.at(0).insert(v.at(0).end(), tok::OpToken(cmn::R_PAREN));
-                    expr.insert(expr.begin() + i, v[c].begin(), v[c].end());
+                    expr[i] = v[c].at(0);
                 }
             }
             c++;
@@ -110,9 +144,16 @@ namespace func {
             });
         if (rightParenIt == tokens.end()) return;
 
-        std::vector<tok::OpToken> argTokens(leftParenIt, rightParenIt);
+        std::vector<tok::OpToken> argTokens(leftParenIt + 1, rightParenIt);
         std::vector<std::vector<tok::OpToken>> arguments = split_args(argTokens);
         auto collapsed = collapse_function(arguments);
+        for (auto& vec : collapsed)
+        {
+            rpn::sort(vec);
+            cmn::value val = rpn::eval(vec);
+            vec.clear();
+            vec.emplace_back(val);
+        }
         if (funcIt->second.builtin.available)
         {
             
@@ -122,7 +163,11 @@ namespace func {
             return;
         }
         std::vector<tok::OpToken> substitutedExpr = sub_params(funcIt->second.GetExpr(), funcIt->second.GetParams(), collapsed);
-
+        rpn::sort(substitutedExpr);
+        cmn::value val = rpn::eval(substitutedExpr);
+        substitutedExpr.clear();
+        substitutedExpr.emplace_back(val);
+        tokens.erase(tokens.begin() + funcIndex, rightParenIt+1 != tokens.end() ? rightParenIt + 1 : tokens.end());
         //tokens.erase(it, rightParenIt + 1);
         tokens.insert(tokens.begin() + funcIndex, substitutedExpr.begin(), substitutedExpr.end());
     }
@@ -153,48 +198,8 @@ namespace func {
                     v.insert(v.begin() + i, tmp.begin(), tmp.end());
                     i++;
                 }
-                else if (funct.builtin.available)
-                {
-                    auto it = v.begin() + i;
-                    if (it->GetType() != tok::FUNCTION) return i + 1;
-                    auto funcIt = func::table.find(it->GetName());
-                    if (funcIt == func::table.end()) return i + 1;
-
-                    // Find the left parenthesis
-                    auto leftParenIt = std::find_if(it, v.end(), [](const tok::OpToken& token) {
-                        return (token.GetType() == tok::OPERATOR) && (token.GetOperator() == cmn::op::L_PAREN);
-                        });
-                    if (leftParenIt == v.end()) return i + 1;
-
-                    // Find the matching right parenthesis, accounting for nested parentheses
-                    int parenCount = 1;
-                    auto rightParenIt = std::find_if(leftParenIt + 1, v.end(), [&parenCount](const tok::OpToken& token) {
-                        if (token.GetType() == tok::OPERATOR) {
-                            if (token.GetOperator() == cmn::op::L_PAREN) ++parenCount;
-                            if (token.GetOperator() == cmn::op::R_PAREN) --parenCount;
-                            //std::cout << cmn::optoch(token.GetOperator()) << ' ';
-                        }
-                        return parenCount == 0;
-                        });
-                    if (rightParenIt == v.end()) return i + 1;
-
-
-                    std::vector<tok::OpToken> vec(v.begin() + i, v.end());
-                    std::vector<tok::OpToken> ret;
-                    if (rightParenIt != v.end() && leftParenIt != v.end())
-                    {
-                        std::vector<tok::OpToken> argsTokens(leftParenIt+1, rightParenIt);
-                        std::vector<std::vector<tok::OpToken>> arguments = split_args(argsTokens);
-                        auto collapsed = collapse_function(arguments);
-                        v.erase(leftParenIt-1, rightParenIt+1);
-                        ret.emplace_back(tok::OpToken(cmn::L_PAREN));
-                        ret.emplace_back(tok::OpToken(funct.run_builtin(collapsed)));
-                        ret.emplace_back(tok::OpToken(cmn::R_PAREN));
-                        v.insert(v.begin() + i, ret.begin(), ret.end());
-                    }
-                }
                 // found function with params
-                return ++i;
+                return i;
             }
         }
         if (i >= MAX_DEPTH) std::cerr << "\nReached MAX_DEPTH (" << MAX_DEPTH << ") in 'has_function'; check for recursive variable access.\n";

@@ -30,6 +30,7 @@ namespace rpn
             }
             case cmn::op::R_PAREN:
             {
+                if (ops.empty()) break;
                 tok::OpToken tmp = ops.top();
                 ops.pop();
                 while (!ops.empty() && (tmp.GetOperator() != cmn::op::L_PAREN))

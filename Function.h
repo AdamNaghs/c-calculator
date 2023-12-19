@@ -49,19 +49,20 @@ namespace func{
         {
             if (v.size() != param_names.size()) throw std::runtime_error("Incorrent number of parameters give.");
             int c = 0;
+            auto tmp = expr;
             for (tok::OpToken name : param_names)
             {
-                for (int i = 0; i < expr.size(); i++)
+                for (int i = 0; i < tmp.size(); i++)
                 {
-                    if (expr.at(i).GetType() == tok::FUNCTION && expr.at(i).GetName() == name.GetName())
+                    if (tmp.at(i).GetType() == tok::FUNCTION && tmp.at(i).GetName() == name.GetName())
                     {
-                        expr.erase(expr.begin() + i);
-                        expr.insert(expr.begin() + i, v[c].begin(), v[c].end());
+                        tmp.erase(tmp.begin() + i);
+                        tmp.insert(tmp.begin() + i, v[c].begin(), v[c].end());
                     }
                 }
                 c++;
             }
-            return expr;
+            return tmp;
         }
 
         cmn::value run_builtin(std::vector<std::vector<tok::OpToken>> v)

@@ -32,6 +32,7 @@ public:
     {
         func_name = s;
         type = TokenType::FUNCTION;
+        data.op = cmn::op::NONE;
     }
 
     TokenType GetType() const {
