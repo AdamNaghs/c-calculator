@@ -85,21 +85,6 @@ namespace func {
     {
         std::vector<int> func_idxs;
         int i = 0;
-        //for (tok::OpToken t : expr)
-        //{
-        //    if (t.GetType() == tok::FUNCTION)
-        //    {
-        //        func_idxs.push_back(i);
-        //    }
-        //    i++;
-        //}
-        //if (func_idxs.size() != param_names.size())
-        //{
-        //    std::vector<tok::OpToken> t;
-        //    std::cerr << "Incorrent number of parameters given to 'sub_params'.";
-        //    return t;
-        //    throw std::runtime_error("Incorrent number of parameters give.");
-        //}
         int c = 0;
         for (tok::OpToken name : param_names)
         {
@@ -163,6 +148,7 @@ namespace func {
             return;
         }
         std::vector<tok::OpToken> substitutedExpr = sub_params(funcIt->second.GetExpr(), funcIt->second.GetParams(), collapsed);
+        substitutedExpr = collapse_function(substitutedExpr);
         rpn::sort(substitutedExpr);
         cmn::value val = rpn::eval(substitutedExpr);
         substitutedExpr.clear();
@@ -205,14 +191,6 @@ namespace func {
         if (i >= MAX_DEPTH) std::cerr << "\nReached MAX_DEPTH (" << MAX_DEPTH << ") in 'has_function'; check for recursive variable access.\n";
         return -1;
     }
-
-#define COLLAPSE_DEF \
-do { \
-    int tmp, depth = 0; \
-    while ((tmp = has_function(tokens)) != -1 && (depth++ < MAX_DEPTH)) proc_func_call(tokens, tmp); \
-    if (depth >= MAX_DEPTH) std::cerr << "\nReached MAX_DEPTH (" << MAX_DEPTH << ") in 'collapse_function'; check for recursive variable access.\n"; \
-    return tokens;\
-} while(0)
 
     std::vector<tok::OpToken> collapse_function(std::string input)
     {

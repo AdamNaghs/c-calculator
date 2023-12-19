@@ -236,12 +236,13 @@ int main(void)
     parse_expr("Func(x) = x^3");
     parse_expr("var(x) = 15+x");
     parse_expr("Larc(x) = x*Func(x/Func(x))");
-    parse_expr("Larc(x) = x * Func ( x )");
+    parse_expr("Larc(x) = x * Func (x)");
     parse_expr("vec(1)");
     parse_expr("1s5");
     parse_expr("vec = 1 + x");
     parse_expr("x = 1 + vec");
     parse_expr("vec");
+    parse_expr("Larc(3)");
     testProcessFunctionCall();
     input_loop();
     return 0;
