@@ -11,13 +11,6 @@
 #define MAX_DEPTH 1000
 
 namespace func {
-
-	std::vector<tok::OpToken> collapse_function(std::string input);
-
-	std::vector<tok::OpToken> collapse_function(std::vector<tok::OpToken>);
-
-	std::vector<std::vector<tok::OpToken>> collapse_function(std::vector<std::vector<tok::OpToken>> token_vecs);
-
 	typedef std::function <cmn::value(std::vector<std::vector<tok::OpToken>>)> params_func;
 
 	class Function
@@ -45,26 +38,6 @@ namespace func {
 
 		std::vector<tok::OpToken> GetParams() { return param_names; }
 
-		std::vector<tok::OpToken> SubInParams(std::vector<std::vector<tok::OpToken>> v)
-		{
-			if (v.size() != param_names.size()) throw std::runtime_error("Incorrent number of parameters give.");
-			int c = 0;
-			auto tmp = expr;
-			for (tok::OpToken name : param_names)
-			{
-				for (int i = 0; i < tmp.size(); i++)
-				{
-					if (tmp.at(i).GetType() == tok::FUNCTION && tmp.at(i).GetName() == name.GetName())
-					{
-						tmp.erase(tmp.begin() + i);
-						tmp.insert(tmp.begin() + i, v[c].begin(), v[c].end());
-					}
-				}
-				c++;
-			}
-			return tmp;
-		}
-
 		cmn::value run_builtin(std::vector<std::vector<tok::OpToken>> v)
 		{
 			if (!builtin.available) 
@@ -74,9 +47,7 @@ namespace func {
 			}
 			if (builtin.num_params == v.size())
 			{
-				expr.clear();
 				cmn::value ret = builtin.func(v);
-				expr.emplace_back(ret);
 				return ret;
 			}
 			std::cerr << "Invalid input. Expected param count " << builtin.num_params << ", not " << v.size() << "\n";
@@ -104,4 +75,9 @@ namespace func {
 
 	std::vector<std::vector<tok::OpToken>> split_args(const std::vector<tok::OpToken>& argTokens);
 
+	std::vector<tok::OpToken> collapse_function(std::string input);
+
+	std::vector<tok::OpToken> collapse_function(std::vector<tok::OpToken>);
+
+	std::vector<std::vector<tok::OpToken>> collapse_function(std::vector<std::vector<tok::OpToken>> token_vecs);
 }

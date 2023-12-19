@@ -25,7 +25,7 @@ void parse_expr(std::string input)
 	// find parenthesis containing param names
 	if (!cmn::do_paren_match(input))
 	{
-		std::cerr << "Parenthesis do not match.\n";
+		std::cerr << "Invalid input. Parenthesis do not match.\n";
 		return;
 	}
 
@@ -70,14 +70,15 @@ void parse_expr(std::string input)
 				auto type = param.GetType();
 				if (type != tok::FUNCTION)
 				{
-					std::cerr << "Invalid parameter, all params must be functions (variables).";
+					std::cerr << "Invalid input. All parameters must be functions (variables).";
 					return;
 				}
-				if (func::table.find(param.GetName()) != func::table.end())
-				{
-					std::cerr << "Invalid parameter, parameter name cannot the same as a function's name.";
-					return;
-				}
+				// if a parameter name is the name as a functions, then that function is not accessable in that call.
+				//if (func::table.find(param.GetName()) != func::table.end())
+				//{
+				//	std::cerr << "Invalid input. Parameter name cannot the same as a function's name.";
+				//	return;
+				//}
 			}
 			func::table[func_name] = func::Function(func_name, param_vec, expr_vec);
 		}
@@ -111,7 +112,6 @@ bool test_parse_and_rpn(const std::string& input, const std::string& expected_rp
 	cmn::value result = rpn::eval(vec);
 	std::cout << "Expected Result: " << expected_result << "\nActual Result:   " << result << "\n";
 	bool result_correct = result == expected_result;
-
 	return rpn_correct == 0 && result_correct;
 }
 
@@ -141,12 +141,10 @@ void input_loop()
 		else if (input == "dump")
 		{
 			for (auto it = func::table.begin(); it != func::table.end(); /* no increment here */) {
-				if (!it->second.builtin.available) {
+				if (!it->second.builtin.available)
 					it = func::table.erase(it);
-				}
-				else {
+				else 
 					++it;
-				}
 			}
 			continue;
 		}

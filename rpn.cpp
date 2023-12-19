@@ -125,7 +125,7 @@ namespace rpn
 			}
 			else {
 				// Pop operands from the stack
-				if (operandStack.empty()) throw std::runtime_error("Not enough operands");
+				if (operandStack.empty()) goto not_enough_operands;
 				cmn::value right = operandStack.top();
 				operandStack.pop();
 				if (operandStack.empty()) return right;
@@ -158,6 +158,7 @@ namespace rpn
 		// The final result is on the top of the stack
 		if (operandStack.empty()) 
 		{
+			not_enough_operands:
 			std::cerr << "Invalid input. Not enough operands, cannot solve expression.";
 			return -420.69;
 		}
@@ -178,7 +179,7 @@ namespace rpn
 	{
 		if (!cmn::do_paren_match(input))
 		{
-			std::cerr << "Parenthesis do not match.\n";
+			std::cerr << "Invalid input. Parenthesis do not match.\n";
 			return 0;
 		}
 		std::vector<tok::OpToken> vec = tok::str_to_optoks(input);
