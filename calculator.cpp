@@ -99,7 +99,7 @@ void parse_expr(std::string input)
 
 bool test_parse_and_rpn(const std::string& input, const std::string& expected_rpn, cmn::value expected_result)
 {
-	std::cout << "\You input: " << input << '\n';
+	std::cout << "\nYou input: " << input << '\n';
 	auto vec = tok::str_to_optoks(input);
 	std::cout << "Before Sort: " << tok::vectostr(vec) << '\n' << "After RPN Sort: ";
 	rpn::sort(vec);
@@ -154,39 +154,6 @@ void input_loop()
 	}
 }
 
-void testProcessFunctionCall() {
-	// Define a function in the function table for testing
-	std::vector<tok::OpToken> funcExpr = { tok::OpToken("y"), tok::OpToken(cmn::op::ADD), tok::OpToken("x") };
-	std::vector<tok::OpToken> funcParams = { tok::OpToken("x"), tok::OpToken("y") };
-	func::Function testFunc("f", funcParams, funcExpr);
-	func::table["f"] = testFunc;
-
-	// Create a vector of tokens representing the expression "2 * f(3)"
-	std::vector<tok::OpToken> tokens = {
-		tok::OpToken("f"),
-		tok::OpToken(cmn::op::L_PAREN),
-		tok::OpToken(3),
-		tok::OpToken(cmn::op::COMMA),
-		tok::OpToken(5),
-		tok::OpToken(cmn::op::R_PAREN),
-		tok::OpToken(cmn::op::MULT),
-		tok::OpToken(2),
-		tok::OpToken(cmn::op::ADD),
-		tok::OpToken("Larc"),
-		tok::OpToken(cmn::op::L_PAREN),
-		tok::OpToken(3),
-		tok::OpToken(cmn::op::R_PAREN),
-	};
-	std::cout << "\n\nBefore:" << tok::vectostr(tokens) << '\n';
-
-	// Process the function call at index 2 (the function 'f')
-	func::collapse_function(tokens);
-	// Check if tokens are correctly replaced
-	// Expected tokens after processing: 2 * (10 + 3)
-	// Implement your method of checking the result here
-	std::cout << "Result:" << tok::vectostr(tokens) << '\n';
-}
-
 int main(void)
 {
 	func::add_builtin_func("pi", 0, [](std::vector<std::vector<tok::OpToken>> s)
@@ -202,6 +169,18 @@ int main(void)
 			if (1 != s.size()) std::cerr << "Wrong number of params in 'cos' Expected:" << 1 << ",Actual:" << s.size() << "\n";
 			rpn::sort(s[0]);
 			return (cmn::value)std::cos(rpn::eval(s[0]));
+		});	
+	func::add_builtin_func("sin", 1, [](std::vector<std::vector<tok::OpToken>> s)
+		{
+			if (1 != s.size()) std::cerr << "Wrong number of params in 'sin' Expected:" << 1 << ",Actual:" << s.size() << "\n";
+			rpn::sort(s[0]);
+			return (cmn::value)std::sin(rpn::eval(s[0]));
+		});
+	func::add_builtin_func("tan", 1, [](std::vector<std::vector<tok::OpToken>> s)
+		{
+			if (1 != s.size()) std::cerr << "Wrong number of params in 'tan' Expected:" << 1 << ",Actual:" << s.size() << "\n";
+			rpn::sort(s[0]);
+			return (cmn::value)std::tan(rpn::eval(s[0]));
 		});
 	func::add_builtin_func("log_base", 2, [](std::vector<std::vector<tok::OpToken>> s)
 		{
@@ -271,7 +250,6 @@ int main(void)
 	parse_expr("vec");
 	parse_expr("Larc(3)");
 	parse_expr("sum(0,2,x)");
-	testProcessFunctionCall();
 	input_loop();
 	return 0;
 }

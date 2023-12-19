@@ -156,7 +156,11 @@ namespace rpn
 		}
 
 		// The final result is on the top of the stack
-		if (operandStack.empty()) return -420.69;
+		if (operandStack.empty()) 
+		{
+			std::cerr << "Invalid input. Not enough operands, cannot solve expression.";
+			return -420.69;
+		}
 		return operandStack.top();
 	}
 

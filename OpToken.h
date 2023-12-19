@@ -17,18 +17,18 @@ enum TokenType {
 class OpToken {
 public:
     // Constructor for values
-    explicit OpToken(cmn::value v) : data(){
+    explicit OpToken(cmn::value v){
         data.val = v;
         type = TokenType::VALUE;
     }
 
     // Constructor for operators
-    explicit OpToken(cmn::op o) : data(){
+    explicit OpToken(cmn::op o) {
         data.op = o;
         type = TokenType::OPERATOR;
     }
 
-    explicit OpToken(std::string s) : data()
+    explicit OpToken(std::string s)
     {
         func_name = s;
         type = TokenType::FUNCTION;

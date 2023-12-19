@@ -3,10 +3,10 @@
 #include <stdexcept>
 #include <vector>
 #include <sstream>
-#include "common.h"
-#include "OpToken.h"
 #include <map>
 #include <functional>
+#include "common.h"
+#include "OpToken.h"
 
 #define MAX_DEPTH 1000
 
@@ -30,8 +30,8 @@ namespace func {
 		Function(std::string _name, size_t _num_params, params_func func) : name(_name)
 		{
 			builtin.available = true;
-			builtin.func = func;
 			builtin.num_params = _num_params;
+			builtin.func = func;
 		}
 
 		Function(std::string _name, std::vector<tok::OpToken> _param_names, std::vector<tok::OpToken> unordered_expression) : name(_name), param_names(_param_names), expr(unordered_expression)
@@ -67,7 +67,11 @@ namespace func {
 
 		cmn::value run_builtin(std::vector<std::vector<tok::OpToken>> v)
 		{
-			if (!builtin.available) return -69;
+			if (!builtin.available) 
+			{
+				std::cerr << "Error: Attempt to call 'run_builtin' for non-builtin function.\n";
+				return 69;
+			}
 			if (builtin.num_params == v.size())
 			{
 				expr.clear();
@@ -75,6 +79,7 @@ namespace func {
 				expr.emplace_back(ret);
 				return ret;
 			}
+			std::cerr << "Invalid input. Expected param count " << builtin.num_params << ", not " << v.size() << "\n";
 			return -420;
 
 		}
