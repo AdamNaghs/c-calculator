@@ -14,13 +14,12 @@
 
 void parse_expr(std::string input)
 {
-
 	int found_eq = -1;
 	int found_param_start = -1;
 	int found_param_end = -1;
 	int i = 0;
-	std::vector<tok::OpToken> tok_vec = tok::str_to_optoks(input);
 	const std::vector<tok::OpToken> empty_vec;
+	std::vector<tok::OpToken> tok_vec = tok::str_to_optoks(input);
 
 	// find parenthesis containing param names
 	if (!cmn::do_paren_match(input))
@@ -98,7 +97,7 @@ void parse_expr(std::string input)
 	}
 }
 
-bool test_parse_and_rpn(const std::string& input, const std::string& expected_rpn, cmn::value expected_result)
+bool test_parse_and_rpn(const std::string& input, const std::string& expected_rpn, const cmn::value expected_result)
 {
 	std::cout << "\nYou input: " << input << '\n';
 	auto vec = tok::str_to_optoks(input);
@@ -140,12 +139,12 @@ void input_loop()
 		}
 		else if (input == "dump")
 		{
-			for (auto it = func::table.begin(); it != func::table.end(); /* no increment here */) {
-				if (!it->second.builtin.available)
-					it = func::table.erase(it);
-				else 
-					++it;
-			}
+			func::dump_table();
+			continue;
+		}
+		else if (input == "debug")
+		{
+			rpn::debug = !rpn::debug;
 			continue;
 		}
 		parse_expr(input);
@@ -193,27 +192,31 @@ int main(void)
 			rpn::sort(s[0]);
 			return (cmn::value)log(rpn::eval(s[0]));
 		});
-	func::add_builtin_func("sum", 3, [](std::vector<std::vector<tok::OpToken>> s)
+	// takes range begin, end, sole variable name, expression;
+	func::add_builtin_func("sum", 4, [](std::vector<std::vector<tok::OpToken>> s)
 		{
-			if (3 != s.size()) std::cerr << "Wrong number of params in 'sum' Expected:" << 3 << ",Actual:" << s.size() << "\n";
-			rpn::sort(s[0]);
-			rpn::sort(s[1]);
-			return (cmn::value)log(rpn::eval(s[0]));
+			if (4 != s.size()) std::cerr << "Wrong number of params in 'sum' Expected:" << 4 << ",Actual:" << s.size() << "\n";
+			for (auto& v : s)
+				rpn::sort(v);
+			s[0][0] = tok::OpToken(rpn::eval(s[0]));
+			s[1][0] = tok::OpToken(rpn::eval(s[1]));
+			std::vector<size_t> idxs;
+			std::vector<tok::OpToken> expr_vec = s[3];
+			for (int i = 0; i < s[3].size(); i++)
+			{
+				if (s[3][i].GetType() == tok::FUNCTION && s[3][i].GetName() == s[2][0].GetName()) idxs.emplace_back(i);
+			}
+			cmn::value ret = 0;
+			for (size_t n = ((size_t)s[0][0].GetValue()); n < ((size_t)s[1][0].GetValue()); n++)
+			{
+				auto expr_copy = expr_vec;
+				for (size_t idx : idxs)
+					expr_copy[idx] = tok::OpToken(n);
+				ret += rpn::eval(expr_copy);
+			}
+			return ret;
 		});
 	parse_expr("pi * cos(0)");
-	// passes all commented tests
-	//std::cout << test_parse_and_rpn("((2 + 1) * 3)", "2 1 + 3 *",9) << " TEST END\n\n";
-	//std::cout << test_parse_and_rpn("(4 + (13 / 5))","4 13 5 / +") << " TEST END\n\n";
-	//std::cout << test_parse_and_rpn("((10 * (6 / ((9 + 3) * -11))) + 17) + 5", "10 6 9 3 + -11 * / * 17 + 5 +") << " TEST END\n\n";
-	//std::cout << test_parse_and_rpn("1 + 2", "1 2 +") << " TEST END\n\n";
-	//std::cout << test_parse_and_rpn("3 + 4 * 2", "3 4 2 * +") << " TEST END\n\n";
-	//std::cout << test_parse_and_rpn("(1 + (2 * (3 - 4)))", "1 2 3 4 - * +") << " TEST END\n\n";
-	//std::cout << test_parse_and_rpn("(8 / (3 - -3))", "8 3 -3 - /") << " TEST END\n\n";
-	//std::cout << test_parse_and_rpn("((3 + (5 - 2)) * (4 / 2))", "3 5 2 - + 4 2 / *") << " TEST END\n\n";
-	//// exponents
-	//std::cout << test_parse_and_rpn("(2 ^ 3 * 4)", "2 3 ^ 4 *") << " TEST END\n\n";
-	//std::cout << test_parse_and_rpn("((7 + 3) * (2 - 5) / 4)", "7 3 + 2 5 - * 4 /") << " TEST END\n\n";
-	//std::cout << test_parse_and_rpn("(6 + 10 - 4) / (1 + 1 * 2) + 1", "6 10 + 4 - 1 1 2 * + / 1 +") << " TEST END\n\n";
 	// Test cases with expected RPN and expected solution (using doubles)
 	std::cout << test_parse_and_rpn("((2 + 1) * 3)", "2 1 + 3 *", 9.0) << " TEST END\n\n";
 	std::cout << test_parse_and_rpn("(4 + (13 / 5))", "4 13 5 / +", 6.6) << " TEST END\n\n"; // Assuming floating-point division
@@ -248,6 +251,7 @@ int main(void)
 	parse_expr("vec");
 	parse_expr("Larc(3)");
 	parse_expr("sum(0,2,x)");
+	func::dump_table();
 	input_loop();
 	return 0;
 }

@@ -1,10 +1,12 @@
-#include "rpn.h"
 #include <stack>
 #include <string>
 #include <iostream>
+#include "rpn.h"
+#include "OpToken.h"
 
 namespace rpn
 {
+	bool debug = false;
 
 	void sort(std::vector<tok::OpToken>& v)
 	{
@@ -66,36 +68,37 @@ namespace rpn
 			}
 
 			// cout
-#ifdef RPN_DEBUG
-			if (!ret.empty())
+			if (debug)
 			{
-				std::cout << "Ret: ";
-				std::vector<tok::Token> tmp;
-				for (auto dump = ret; !dump.empty(); dump.pop())
-					tmp.insert(tmp.begin(), dump.top());
-				for (auto t : tmp)
+				if (!ret.empty())
 				{
-					std::cout << t << " ";
+					std::vector<tok::OpToken> tmp;
+					std::cout << "Ret: ";
+					for (auto dump = ret; !dump.empty(); dump.pop())
+						tmp.insert(tmp.begin(), dump.top());
+					for (auto t : tmp)
+					{
+						std::cout << t << " ";
+					}
+					std::cout << '\n';
 				}
-				std::cout << '\n';
-			}
-			else std::cout << "Ret: Empty\n";
-			if (!ops.empty())
-			{
-				std::cout << "Ops: ";
-				std::vector<tok::Token> tmp;
-				for (auto dump = ops; !dump.empty(); dump.pop())
-					tmp.insert(tmp.begin(), dump.top());
-				for (auto t : tmp)
+				else std::cout << "Ret: Empty\n";
+				if (!ops.empty())
 				{
-					std::cout << t << " ";
+					std::cout << "Ops: ";
+					std::vector<tok::OpToken> tmp;
+					for (auto dump = ops; !dump.empty(); dump.pop())
+						tmp.insert(tmp.begin(), dump.top());
+					for (auto t : tmp)
+					{
+						std::cout << t << " ";
+					}
+					std::cout << '\n';
 				}
-				std::cout << '\n';
-			}
-			else std::cout << "Ops: Empty\n";
+				else std::cout << "Ops: Empty\n";
 
-			std::cout << std::endl;
-#endif
+				std::cout << std::endl;
+			}
 			// check if at the top of 
 		   // the stack there is higher precedence
 		}
@@ -143,8 +146,7 @@ namespace rpn
 				case cmn::op::MULT:
 					operandStack.push(left * right);
 					break;
-				case cmn::op::DIV:
-					if (right == 0) throw std::logic_error("Cannot divide by 0");
+				case cmn::op::DIV:;
 					operandStack.push(left / right); // Ensure division by zero is handled
 					break;
 				case cmn::op::POW:

@@ -25,6 +25,7 @@ namespace func {
 			builtin.available = true;
 			builtin.num_params = _num_params;
 			builtin.func = func;
+			param_names.emplace_back(_num_params);
 		}
 
 		Function(std::string _name, std::vector<tok::OpToken> _param_names, std::vector<tok::OpToken> unordered_expression) : name(_name), param_names(_param_names), expr(unordered_expression)
@@ -68,6 +69,8 @@ namespace func {
 	};
 
 	extern std::map<std::string, Function> table;
+
+	void dump_table(void);
 
 	void add_builtin_func(std::string name, int num_params, cmn::value(*func)(std::vector<std::vector<tok::OpToken>>));
 
