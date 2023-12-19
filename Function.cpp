@@ -115,13 +115,6 @@ namespace func {
 		std::vector<tok::OpToken> argTokens(leftParenIt + 1, rightParenIt);
 		std::vector<std::vector<tok::OpToken>> arguments = split_args(argTokens);
 		auto collapsed = collapse_function(arguments);
-		//for (auto& vec : collapsed)
-		//{
-		//	rpn::sort(vec);
-		//	cmn::value val = rpn::eval(vec);
-		//	vec.clear();
-		//	vec.emplace_back(val);
-		//}
 		if (funcIt->second.builtin.available)
 		{
 			tok::OpToken val = table[funcIt->second.GetName()].run_builtin(collapsed);

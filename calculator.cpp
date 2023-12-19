@@ -72,12 +72,6 @@ void parse_expr(std::string input)
 					std::cerr << "Invalid input. All parameters must be functions (variables).";
 					return;
 				}
-				// if a parameter name is the name as a functions, then that function is not accessable in that call.
-				//if (func::table.find(param.GetName()) != func::table.end())
-				//{
-				//	std::cerr << "Invalid input. Parameter name cannot the same as a function's name.";
-				//	return;
-				//}
 			}
 			func::table[func_name] = func::Function(func_name, param_vec, expr_vec);
 		}
@@ -185,7 +179,7 @@ int main(void)
 				return s[0][0];
 			return tok::OpToken((cmn::value)std::tan(rpn::eval(s[0])));
 		});
-	func::add_builtin_func("log_base", 2, [](std::vector<std::vector<tok::OpToken>> s)
+	func::add_builtin_func("log", 2, [](std::vector<std::vector<tok::OpToken>> s)
 		{
 			if (2 != s.size()) std::cerr << "Wrong number of params in 'log_base' Expected:" << 2 << ",Actual:" << s.size() << "\n";
 			rpn::sort(s[0]);
@@ -201,6 +195,18 @@ int main(void)
 			if (s[0][0].GetType() == tok::FUNCTION && func::table.find(s[0][0].GetName()) == func::table.end())
 				return s[0][0];
 			return tok::OpToken((cmn::value)log(rpn::eval(s[0])));
+		});
+	func::add_builtin_func("root", 2, [](std::vector<std::vector<tok::OpToken>> s)
+		{
+			if (2 != s.size()) std::cerr << "Wrong number of params in 'ln' Expected:" << 2 << ",Actual:" << s.size() << "\n";
+			if (s[0][0].GetType() == tok::FUNCTION && func::table.find(s[0][0].GetName()) == func::table.end())
+				return s[0][0];
+			for (auto& v : s)
+			{
+				rpn::sort(v);
+				v[0] = tok::OpToken(rpn::eval(v));
+			}
+			return tok::OpToken(powl(s[1][0].GetValue(), (double)1 / s[0][0].GetValue()));
 		});
 	// takes range begin, end, sole variable name, expression;
 	func::add_builtin_func("sum", 4, [](std::vector<std::vector<tok::OpToken>> s)
@@ -228,7 +234,7 @@ int main(void)
 		});
 	func::add_builtin_func("list", 4, [](std::vector<std::vector<tok::OpToken>> s)
 		{
-			if (4 != s.size()) std::cerr << "Wrong number of params in 'sum' Expected:" << 4 << ",Actual:" << s.size() << "\n";
+			if (4 != s.size()) std::cerr << "Wrong number of params in 'list' Expected:" << 4 << ",Actual:" << s.size() << "\n";
 			rpn::sort(s[0]);
 			rpn::sort(s[1]);
 			rpn::sort(s[2]);
@@ -250,23 +256,12 @@ int main(void)
 				auto collapse = func::collapse_function(expr_copy);
 				rpn::sort(collapse);
 				ret = rpn::eval(collapse);
-				std::cout << "(y:" << n << ", x:" << ret << "),\n";
+				std::cout << "(x:" << n << ", y:" << ret << "),\n";
 			}
 			std::cout << "\b}\n";
 			return tok::OpToken(ret);
 		});
-	func::add_builtin_func("root", 2, [](std::vector<std::vector<tok::OpToken>> s)
-		{
-			if (2 != s.size()) std::cerr << "Wrong number of params in 'ln' Expected:" << 2 << ",Actual:" << s.size() << "\n";
-			if (s[0][0].GetType() == tok::FUNCTION && func::table.find(s[0][0].GetName()) == func::table.end())
-				return s[0][0];
-			for (auto& v : s)
-			{
-				rpn::sort(v);
-				v[0] = tok::OpToken(rpn::eval(v));
-			}
-			return tok::OpToken(powl(s[1][0].GetValue(), (double)1 / s[0][0].GetValue()));
-		});
+	parse_expr("sum(0,10,n+1,ln(n))");
 	parse_expr("list(0, 100, n, ln(n))");
 	parse_expr("pi * cos(0)");
 	// Test cases with expected RPN and expected solution (using doubles)
