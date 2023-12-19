@@ -72,12 +72,6 @@ void parse_expr(std::string input)
 					std::cerr << "Invalid input. All parameters must be functions (variables).";
 					return;
 				}
-				// if a parameter name is the name as a functions, then that function is not accessable in that call.
-				//if (func::table.find(param.GetName()) != func::table.end())
-				//{
-				//	std::cerr << "Invalid input. Parameter name cannot the same as a function's name.";
-				//	return;
-				//}
 			}
 			func::table[func_name] = func::Function(func_name, param_vec, expr_vec);
 		}
@@ -155,42 +149,64 @@ int main(void)
 {
 	func::add_builtin_func("pi", 0, [](std::vector<std::vector<tok::OpToken>> s)
 		{
-			return 3.14159265359;
+			return tok::OpToken(3.14159265359);
 		});
 	func::add_builtin_func("e", 0, [](std::vector<std::vector<tok::OpToken>> s)
 		{
-			return 2.718281828459045;
+			return tok::OpToken(2.718281828459045);
 		});
 	func::add_builtin_func("cos", 1, [](std::vector<std::vector<tok::OpToken>> s)
 		{
 			if (1 != s.size()) std::cerr << "Wrong number of params in 'cos' Expected:" << 1 << ",Actual:" << s.size() << "\n";
 			rpn::sort(s[0]);
-			return (cmn::value)std::cos(rpn::eval(s[0]));
+			if (s[0][0].GetType() == tok::FUNCTION && func::table.find(s[0][0].GetName()) == func::table.end())
+				return s[0][0];
+			return tok::OpToken((cmn::value)std::cos(rpn::eval(s[0])));
 		});	
 	func::add_builtin_func("sin", 1, [](std::vector<std::vector<tok::OpToken>> s)
 		{
 			if (1 != s.size()) std::cerr << "Wrong number of params in 'sin' Expected:" << 1 << ",Actual:" << s.size() << "\n";
 			rpn::sort(s[0]);
-			return (cmn::value)std::sin(rpn::eval(s[0]));
+			if (s[0][0].GetType() == tok::FUNCTION && func::table.find(s[0][0].GetName()) == func::table.end())
+				return s[0][0];
+			return tok::OpToken((cmn::value)std::sin(rpn::eval(s[0])));
 		});
 	func::add_builtin_func("tan", 1, [](std::vector<std::vector<tok::OpToken>> s)
 		{
 			if (1 != s.size()) std::cerr << "Wrong number of params in 'tan' Expected:" << 1 << ",Actual:" << s.size() << "\n";
 			rpn::sort(s[0]);
-			return (cmn::value)std::tan(rpn::eval(s[0]));
+			if (s[0][0].GetType() == tok::FUNCTION && func::table.find(s[0][0].GetName()) == func::table.end())
+				return s[0][0];
+			return tok::OpToken((cmn::value)std::tan(rpn::eval(s[0])));
 		});
-	func::add_builtin_func("log_base", 2, [](std::vector<std::vector<tok::OpToken>> s)
+	func::add_builtin_func("log", 2, [](std::vector<std::vector<tok::OpToken>> s)
 		{
 			if (2 != s.size()) std::cerr << "Wrong number of params in 'log_base' Expected:" << 2 << ",Actual:" << s.size() << "\n";
 			rpn::sort(s[0]);
 			rpn::sort(s[1]);
-			return (cmn::value)log(rpn::eval(s[0])) / log(rpn::eval(s[1]));
+			if (s[2][0].GetType() == tok::FUNCTION && func::table.find(s[2][0].GetName()) == func::table.end())
+				return s[2][0];
+			return tok::OpToken((cmn::value)log(rpn::eval(s[0])) / log(rpn::eval(s[1])));
 		});
 	func::add_builtin_func("ln", 1, [](std::vector<std::vector<tok::OpToken>> s)
 		{
 			if (1 != s.size()) std::cerr << "Wrong number of params in 'ln' Expected:" << 1 << ",Actual:" << s.size() << "\n";
 			rpn::sort(s[0]);
-			return (cmn::value)log(rpn::eval(s[0]));
+			if (s[0][0].GetType() == tok::FUNCTION && func::table.find(s[0][0].GetName()) == func::table.end())
+				return s[0][0];
+			return tok::OpToken((cmn::value)log(rpn::eval(s[0])));
+		});
+	func::add_builtin_func("root", 2, [](std::vector<std::vector<tok::OpToken>> s)
+		{
+			if (2 != s.size()) std::cerr << "Wrong number of params in 'ln' Expected:" << 2 << ",Actual:" << s.size() << "\n";
+			if (s[0][0].GetType() == tok::FUNCTION && func::table.find(s[0][0].GetName()) == func::table.end())
+				return s[0][0];
+			for (auto& v : s)
+			{
+				rpn::sort(v);
+				v[0] = tok::OpToken(rpn::eval(v));
+			}
+			return tok::OpToken(powl(s[1][0].GetValue(), (double)1 / s[0][0].GetValue()));
 		});
 	// takes range begin, end, sole variable name, expression;
 	func::add_builtin_func("sum", 4, [](std::vector<std::vector<tok::OpToken>> s)
@@ -211,11 +227,42 @@ int main(void)
 			{
 				auto expr_copy = expr_vec;
 				for (size_t idx : idxs)
-					expr_copy[idx] = tok::OpToken(n);
+					expr_copy[idx] = tok::OpToken((cmn::value)n);
 				ret += rpn::eval(expr_copy);
 			}
-			return ret;
+			return tok::OpToken(ret);
 		});
+	func::add_builtin_func("list", 4, [](std::vector<std::vector<tok::OpToken>> s)
+		{
+			if (4 != s.size()) std::cerr << "Wrong number of params in 'list' Expected:" << 4 << ",Actual:" << s.size() << "\n";
+			rpn::sort(s[0]);
+			rpn::sort(s[1]);
+			rpn::sort(s[2]);
+			s[0][0] = tok::OpToken(rpn::eval(s[0]));
+			s[1][0] = tok::OpToken(rpn::eval(s[1]));
+			std::vector<size_t> idxs;
+			std::vector<tok::OpToken> expr_vec = s[3];
+			for (int i = 0; i < s[3].size(); i++)
+			{
+				if (s[3][i].GetType() == tok::FUNCTION && s[3][i].GetName() == s[2][0].GetName()) idxs.emplace_back(i);
+			}
+			cmn::value ret = 0;
+			std::cout << "{\n";
+			for (size_t n = ((size_t)s[0][0].GetValue()); n < ((size_t)s[1][0].GetValue()); n++)
+			{
+				auto expr_copy = expr_vec;
+				for (size_t idx : idxs)
+					expr_copy[idx] = tok::OpToken((cmn::value)n);
+				auto collapse = func::collapse_function(expr_copy);
+				rpn::sort(collapse);
+				ret = rpn::eval(collapse);
+				std::cout << "(x:" << n << ", y:" << ret << "),\n";
+			}
+			std::cout << "\b}\n";
+			return tok::OpToken(ret);
+		});
+	parse_expr("sum(0,10,n+1,ln(n))");
+	parse_expr("list(0, 100, n, ln(n))");
 	parse_expr("pi * cos(0)");
 	// Test cases with expected RPN and expected solution (using doubles)
 	std::cout << test_parse_and_rpn("((2 + 1) * 3)", "2 1 + 3 *", 9.0) << " TEST END\n\n";
@@ -251,6 +298,7 @@ int main(void)
 	parse_expr("vec");
 	parse_expr("Larc(3)");
 	parse_expr("sum(0,2,x)");
+
 	func::dump_table();
 	input_loop();
 	return 0;
