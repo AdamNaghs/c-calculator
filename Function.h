@@ -11,7 +11,7 @@
 #define MAX_DEPTH 1000
 
 namespace func {
-	typedef std::function <cmn::value(std::vector<std::vector<tok::OpToken>>)> params_func;
+	typedef std::function <tok::OpToken(std::vector<std::vector<tok::OpToken>>)> params_func;
 
 	class Function
 	{
@@ -25,7 +25,6 @@ namespace func {
 			builtin.available = true;
 			builtin.num_params = _num_params;
 			builtin.func = func;
-			param_names.emplace_back(_num_params);
 		}
 
 		Function(std::string _name, std::vector<tok::OpToken> _param_names, std::vector<tok::OpToken> unordered_expression) : name(_name), param_names(_param_names), expr(unordered_expression)
@@ -39,20 +38,20 @@ namespace func {
 
 		std::vector<tok::OpToken> GetParams() { return param_names; }
 
-		cmn::value run_builtin(std::vector<std::vector<tok::OpToken>> v)
+		tok::OpToken run_builtin(std::vector<std::vector<tok::OpToken>> v)
 		{
 			if (!builtin.available) 
 			{
 				std::cerr << "Error: Attempt to call 'run_builtin' for non-builtin function.\n";
-				return 69;
+				return tok::OpToken(69);
 			}
 			if (builtin.num_params == v.size())
 			{
-				cmn::value ret = builtin.func(v);
+				tok::OpToken ret = builtin.func(v);
 				return ret;
 			}
 			std::cerr << "Invalid input. Expected param count " << builtin.num_params << ", not " << v.size() << "\n";
-			return -420;
+			return tok::OpToken(-420);
 
 		}
 
@@ -72,7 +71,7 @@ namespace func {
 
 	void dump_table(void);
 
-	void add_builtin_func(std::string name, int num_params, cmn::value(*func)(std::vector<std::vector<tok::OpToken>>));
+	void add_builtin_func(std::string name, int num_params, params_func func);
 
 	std::string tabletostr(void);
 

@@ -12,10 +12,21 @@ namespace func {
 		s << "{\n";
 		for (std::pair<std::string, Function> pair : table)
 		{
-			s << "(Name: " << pair.first << ", Params: " << tok::vectostr(pair.second.GetParams()) << "\b, Expr: " << tok::vectostr(pair.second.GetExpr()) << "),\n";
+			s << "(Name: " << pair.first << ", Params: " << tok::vectostr(pair.second.GetParams()) << "\b, Expr: " << tok::vectostr(pair.second.GetExpr()) << "\b, Builtin Params:" << pair.second.builtin.num_params << "), \n";
 		}
 		s << "}";
 		return s.str();
+	}
+
+	void dump_table(void)
+	{
+		for (auto it = table.begin(); it != table.end(); /* no increment here */)
+		{
+			if (!it->second.builtin.available)
+				it = table.erase(it);
+			else
+				++it;
+		}
 	}
 
 	std::vector<std::vector<tok::OpToken>> split_args(const std::vector<tok::OpToken>& argTokens) {
@@ -23,15 +34,15 @@ namespace func {
 		std::vector<tok::OpToken> currentArg;
 		int parenDepth = 0;
 
-		for (const auto& token : argTokens) 
+		for (const auto& token : argTokens)
 		{
 			auto t_type = token.GetType();
-			if (t_type == tok::TokenType::OPERATOR && token.GetOperator() == cmn::op::L_PAREN) 
+			if (t_type == tok::TokenType::OPERATOR && token.GetOperator() == cmn::op::L_PAREN)
 				parenDepth++;
 			else if (t_type == tok::TokenType::OPERATOR && token.GetOperator() == cmn::op::R_PAREN)
 				parenDepth--;
 
-			if ((t_type == tok::TokenType::OPERATOR) && token.GetOperator() == cmn::op::COMMA) 
+			if ((t_type == tok::TokenType::OPERATOR) && token.GetOperator() == cmn::op::COMMA)
 			{
 				if (parenDepth == 0)
 				{
@@ -113,9 +124,12 @@ namespace func {
 		//}
 		if (funcIt->second.builtin.available)
 		{
-			cmn::value val = table[funcIt->second.GetName()].run_builtin(collapsed);
-			tokens.erase(leftParenIt, rightParenIt);
-			tokens[funcIndex] = tok::OpToken(val);
+			tok::OpToken val = table[funcIt->second.GetName()].run_builtin(collapsed);
+			if (val.GetType() == tok::VALUE) 
+			{
+				tokens.erase(leftParenIt, rightParenIt);
+				tokens[funcIndex] = val;
+			}
 			return;
 		}
 		std::vector<tok::OpToken> substitutedExpr = sub_params(funcIt->second.GetExpr(), funcIt->second.GetParams(), collapsed);
@@ -180,7 +194,9 @@ namespace func {
 	{
 		int tmp, depth = 0;
 		while ((tmp = has_function(tokens)) != -1 && (depth++ < MAX_DEPTH))
+		{
 			proc_func_call(tokens, tmp);
+		}
 		if (depth >= MAX_DEPTH) std::cerr << "\nReached MAX_DEPTH (" << MAX_DEPTH << ") in 'collapse_function'; check for recursive variable access.\n";
 		return tokens;
 	}
@@ -190,26 +206,17 @@ namespace func {
 		for (std::vector<tok::OpToken>& tokens : token_vecs) {
 			int tmp, depth = 0;
 			while ((tmp = has_function(tokens)) != -1 && (depth++ < MAX_DEPTH))
+			{
 				proc_func_call(tokens, tmp);
+			}
 			if (depth >= MAX_DEPTH) std::cerr << "\nReached MAX_DEPTH (" << MAX_DEPTH << ") in 'collapse_function'; check for recursive variable access.\n";
 		}
 		return token_vecs;
 	}
 
-	void add_builtin_func(std::string name, int param_len, cmn::value(*func_ptr)(std::vector<std::vector<tok::OpToken>>))
+	void add_builtin_func(std::string name, int param_len, params_func func)
 	{
-		table[name] = Function(name, param_len, func_ptr);
-	}
-
-	void dump_table(void)
-	{
-		for (auto it = table.begin(); it != table.end(); /* no increment here */) 
-		{
-			if (!it->second.builtin.available)
-				it = table.erase(it);
-			else
-				++it;
-		}
+		table[name] = Function(name, param_len, func);
 	}
 
 }
