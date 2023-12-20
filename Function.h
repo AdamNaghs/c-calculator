@@ -67,6 +67,13 @@ namespace func {
 		std::vector<tok::OpToken> param_names; // variables which have names
 	};
 
+	enum return_code {
+		FAILURE = 0,
+		SUCCESS = 1,
+		DELAY_EVAL = -1,
+		INVALID_INPUT = -2,
+	};
+
 	extern std::map<std::string, Function> table;
 
 	void dump_table(void);
@@ -77,9 +84,9 @@ namespace func {
 
 	std::vector<std::vector<tok::OpToken>> split_args(const std::vector<tok::OpToken>& argTokens);
 
-	std::vector<tok::OpToken> collapse_function(std::string input);
+	std::vector<tok::OpToken> collapse_function(std::string input, bool& encountered_error);
 
-	std::vector<tok::OpToken> collapse_function(std::vector<tok::OpToken>);
+	std::vector<tok::OpToken> collapse_function(std::vector<tok::OpToken>, bool& encountered_error);
 
-	std::vector<std::vector<tok::OpToken>> collapse_function(std::vector<std::vector<tok::OpToken>> token_vecs);
+	std::vector<std::vector<tok::OpToken>> collapse_function(std::vector<std::vector<tok::OpToken>> token_vecs, bool& encountered_error);
 }

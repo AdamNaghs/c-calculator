@@ -63,13 +63,13 @@ void parse_expr(std::string input)
 					cmn::op tmp = token.GetOperator();
 					return token.IsOperator() && tmp && (tmp == cmn::op::COMMA);}),
 				param_vec.end());
-			std::cout << "\nInput: " << tok::vectostr(tok_vec) << "\nParams:" << tok::vectostr(param_vec) << "\nExpr:" << tok::vectostr(expr_vec) << "\n";
+			std::cout << "Input: " << tok::vectostr(tok_vec) << "\nParams:" << tok::vectostr(param_vec) << "\nExpr:" << tok::vectostr(expr_vec) << "\n\n";
 			for (tok::OpToken param : param_vec)
 			{
 				auto type = param.GetType();
 				if (type != tok::FUNCTION)
 				{
-					std::cerr << "Invalid input. All parameters must be functions (variables).";
+					std::cerr << "Invalid input. All parameters must be functions (variables).\n";
 					return;
 				}
 			}
@@ -83,7 +83,13 @@ void parse_expr(std::string input)
 	}
 	else
 	{
-		std::vector<tok::OpToken> tokens = func::collapse_function(input);
+		bool error = false;
+		std::vector<tok::OpToken> tokens = func::collapse_function(input,error);
+		if (error) 
+		{
+			std::cout << "Error parsing expression:'" << input << "'\n";
+			return;
+		}
 		rpn::sort(tokens);
 		cmn::value n = rpn::eval(tokens);
 		func::table[LAST_VALUE] = func::Function(LAST_VALUE, empty_vec, { tok::OpToken(n) });
@@ -145,19 +151,22 @@ void input_loop()
 	}
 }
 
+#define check_params(vec, num, func_name) if (vec.size() != num) { std::cerr << "Wrong number of params in '" << func_name << "' Expected:" << num << ",Actual:" << vec.size() << "\n"; return tok::OpToken(0); }
 int main(void)
 {
 	func::add_builtin_func("pi", 0, [](std::vector<std::vector<tok::OpToken>> s)
 		{
+			check_params(s, 0, "pi");
 			return tok::OpToken(3.14159265359);
 		});
 	func::add_builtin_func("e", 0, [](std::vector<std::vector<tok::OpToken>> s)
 		{
+			check_params(s, 0, "e");
 			return tok::OpToken(2.718281828459045);
 		});
 	func::add_builtin_func("cos", 1, [](std::vector<std::vector<tok::OpToken>> s)
 		{
-			if (1 != s.size()) std::cerr << "Wrong number of params in 'cos' Expected:" << 1 << ",Actual:" << s.size() << "\n";
+			check_params(s, 1, "cos");
 			rpn::sort(s[0]);
 			if (s[0][0].GetType() == tok::FUNCTION && func::table.find(s[0][0].GetName()) == func::table.end())
 				return s[0][0];
@@ -165,7 +174,7 @@ int main(void)
 		});	
 	func::add_builtin_func("sin", 1, [](std::vector<std::vector<tok::OpToken>> s)
 		{
-			if (1 != s.size()) std::cerr << "Wrong number of params in 'sin' Expected:" << 1 << ",Actual:" << s.size() << "\n";
+			check_params(s, 1, "sin");
 			rpn::sort(s[0]);
 			if (s[0][0].GetType() == tok::FUNCTION && func::table.find(s[0][0].GetName()) == func::table.end())
 				return s[0][0];
@@ -173,7 +182,7 @@ int main(void)
 		});
 	func::add_builtin_func("tan", 1, [](std::vector<std::vector<tok::OpToken>> s)
 		{
-			if (1 != s.size()) std::cerr << "Wrong number of params in 'tan' Expected:" << 1 << ",Actual:" << s.size() << "\n";
+			check_params(s, 1, "tan");
 			rpn::sort(s[0]);
 			if (s[0][0].GetType() == tok::FUNCTION && func::table.find(s[0][0].GetName()) == func::table.end())
 				return s[0][0];
@@ -181,7 +190,7 @@ int main(void)
 		});
 	func::add_builtin_func("log", 2, [](std::vector<std::vector<tok::OpToken>> s)
 		{
-			if (2 != s.size()) std::cerr << "Wrong number of params in 'log_base' Expected:" << 2 << ",Actual:" << s.size() << "\n";
+			check_params(s, 2, "log");
 			rpn::sort(s[0]);
 			rpn::sort(s[1]);
 			if (s[2][0].GetType() == tok::FUNCTION && func::table.find(s[2][0].GetName()) == func::table.end())
@@ -190,7 +199,7 @@ int main(void)
 		});
 	func::add_builtin_func("ln", 1, [](std::vector<std::vector<tok::OpToken>> s)
 		{
-			if (1 != s.size()) std::cerr << "Wrong number of params in 'ln' Expected:" << 1 << ",Actual:" << s.size() << "\n";
+			check_params(s, 1, "ln");
 			rpn::sort(s[0]);
 			if (s[0][0].GetType() == tok::FUNCTION && func::table.find(s[0][0].GetName()) == func::table.end())
 				return s[0][0];
@@ -198,7 +207,7 @@ int main(void)
 		});
 	func::add_builtin_func("root", 2, [](std::vector<std::vector<tok::OpToken>> s)
 		{
-			if (2 != s.size()) std::cerr << "Wrong number of params in 'ln' Expected:" << 2 << ",Actual:" << s.size() << "\n";
+			check_params(s, 2, "root");
 			if (s[0][0].GetType() == tok::FUNCTION && func::table.find(s[0][0].GetName()) == func::table.end())
 				return s[0][0];
 			for (auto& v : s)
@@ -211,7 +220,7 @@ int main(void)
 	// takes range begin, end, sole variable name, expression;
 	func::add_builtin_func("sum", 4, [](std::vector<std::vector<tok::OpToken>> s)
 		{
-			if (4 != s.size()) std::cerr << "Wrong number of params in 'sum' Expected:" << 4 << ",Actual:" << s.size() << "\n";
+			check_params(s, 4, "sum");
 			for (auto& v : s)
 				rpn::sort(v);
 			s[0][0] = tok::OpToken(rpn::eval(s[0]));
@@ -234,7 +243,7 @@ int main(void)
 		});
 	func::add_builtin_func("list", 4, [](std::vector<std::vector<tok::OpToken>> s)
 		{
-			if (4 != s.size()) std::cerr << "Wrong number of params in 'list' Expected:" << 4 << ",Actual:" << s.size() << "\n";
+			check_params(s, 4, "list");
 			rpn::sort(s[0]);
 			rpn::sort(s[1]);
 			rpn::sort(s[2]);
@@ -253,7 +262,12 @@ int main(void)
 				auto expr_copy = expr_vec;
 				for (size_t idx : idxs)
 					expr_copy[idx] = tok::OpToken((cmn::value)n);
-				auto collapse = func::collapse_function(expr_copy);
+				bool error = false;
+				auto collapse = func::collapse_function(expr_copy,error);
+				if (error)
+				{
+					return tok::OpToken(0);
+				}
 				rpn::sort(collapse);
 				ret = rpn::eval(collapse);
 				std::cout << "(x:" << n << ", y:" << ret << "),\n";
@@ -261,6 +275,13 @@ int main(void)
 			std::cout << "\b}\n";
 			return tok::OpToken(ret);
 		});
+	parse_expr("add(x,y) = x + y");
+	parse_expr("add(1,add(1,1))");
+	parse_expr("x(y) = y");
+	parse_expr("x");
+	parse_expr("x = y");
+	parse_expr("y = x");
+	parse_expr("x");
 	parse_expr("sum(0,10,n+1,ln(n))");
 	parse_expr("list(0, 100, n, ln(n))");
 	parse_expr("pi * cos(0)");
@@ -285,8 +306,6 @@ int main(void)
 	std::cout << test_parse_and_rpn("1s5", "", 0);
 	std::cout << test_parse_and_rpn("1 * s5", "", 0);
 	parse_expr("var(x,y,z) = 15+x");
-	parse_expr("add(x,y) = x + y");
-	parse_expr("add(1,add(1,1))");
 	parse_expr("Func(x) = x^3");
 	parse_expr("var(x) = 15+x");
 	parse_expr("Larc(x) = x*Func(x/Func(x))");
