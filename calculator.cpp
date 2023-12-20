@@ -246,7 +246,7 @@ static void load_builtin_functions(void)
 			std::vector<tok::OpToken> expr_vec = s[3];
 			for (int i = 0; i < s[3].size(); i++)
 			{
-				if (s[3][i].GetType() == tok::FUNCTION && s[3][i].GetName() == s[2][0].GetName()) idxs.emplace_back(i);
+				if (s[3][i].GetType() == tok::FUNCTION && s[2][0].GetType() == tok::FUNCTION && s[3][i].GetName() == s[2][0].GetName()) idxs.emplace_back(i);
 			}
 			cmn::value ret = 0;
 			for (size_t n = ((size_t)s[0][0].GetValue()); n < ((size_t)s[1][0].GetValue()); n++)
@@ -260,6 +260,7 @@ static void load_builtin_functions(void)
 				{
 					return tok::OpToken(0);
 				}
+				rpn::sort(expr_copy);
 				ret += rpn::eval(expr_copy);
 			}
 			return tok::OpToken(ret);
@@ -304,7 +305,9 @@ static void load_builtin_functions(void)
 int main(void)
 {
 	load_builtin_functions();
-	parse_expr("sum(0,10,n,ln(n))");     
+	parse_expr("sum(0,1,2,add(1,1))");
+	parse_expr("sum(1,10,n,ln(n))");     
+	parse_expr("sum(1,10,n+1,ln(n))");     
 	parse_expr("!");
 	parse_expr("hypot_len(a,b) = root(2,a^2 + b^2)");
 	parse_expr("hypot_len(3,4)");
