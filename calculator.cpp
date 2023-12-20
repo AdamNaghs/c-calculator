@@ -300,6 +300,7 @@ static void load_builtin_functions(void)
 int main(void)
 {
 	load_builtin_functions();
+	parse_expr("!");
 	parse_expr("hypot_len(a,b) = root(2,a^2 + b^2)");
 	parse_expr("hypot_len(3,4)");
 	parse_expr("hypot_len(1,pi)");
@@ -345,8 +346,8 @@ int main(void)
 	parse_expr("vec");
 	parse_expr("Larc(3)");
 	parse_expr("sum(0,2,x)");
+	input_loop();
 
 	//func::dump_table();
-	input_loop();
 	return 0;
 }
