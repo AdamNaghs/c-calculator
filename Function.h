@@ -43,7 +43,7 @@ namespace func {
 			if (!builtin.available) 
 			{
 				std::cerr << "Error: Attempt to call 'run_builtin' for non-builtin function.\n";
-				return tok::OpToken(69);
+				return tok::OpToken(0);
 			}
 			if (builtin.num_params == v.size())
 			{
@@ -51,7 +51,7 @@ namespace func {
 				return ret;
 			}
 			std::cerr << "Invalid input. Expected param count " << builtin.num_params << ", not " << v.size() << "\n";
-			return tok::OpToken(-420);
+			return tok::OpToken(0);
 
 		}
 

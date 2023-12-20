@@ -52,6 +52,12 @@ void parse_expr(std::string input)
 			return;
 		}
 		std::string func_name = tok_vec.at(0).GetName();
+		auto it = func::table.find(func_name);
+		if ((it != func::table.end() && it->second.builtin.available) || func_name == LAST_VALUE)
+		{
+			std::cerr << "Invalid input. Cannot overwrite builtin function '" << func_name << "'.\n";
+			return;
+		}
 		std::vector<tok::OpToken> expr_vec(tok_vec.begin() + found_eq + 1, tok_vec.end());
 		if (found_param_start > -1)
 		{
@@ -63,6 +69,7 @@ void parse_expr(std::string input)
 					cmn::op tmp = token.GetOperator();
 					return token.IsOperator() && tmp && (tmp == cmn::op::COMMA);}),
 				param_vec.end());
+			tok::OpToken func = tok_vec.at(0);
 			std::cout << "Input: " << tok::vectostr(tok_vec) << "\nParams:" << tok::vectostr(param_vec) << "\nExpr:" << tok::vectostr(expr_vec) << "\n\n";
 			for (tok::OpToken param : param_vec)
 			{
@@ -70,6 +77,11 @@ void parse_expr(std::string input)
 				if (type != tok::FUNCTION)
 				{
 					std::cerr << "Invalid input. All parameters must be functions (variables).\n";
+					return;
+				}
+				if (param.GetName() == func_name)
+				{
+					std::cerr << "Invalid input. Parameter name cannot be same as the name of the function it is in.\n";
 					return;
 				}
 			}
@@ -84,8 +96,8 @@ void parse_expr(std::string input)
 	else
 	{
 		bool error = false;
-		std::vector<tok::OpToken> tokens = func::collapse_function(input,error);
-		if (error) 
+		std::vector<tok::OpToken> tokens = func::collapse_function(input, error);
+		if (error)
 		{
 			std::cout << "Error parsing expression:'" << input << "'\n";
 			return;
@@ -153,9 +165,8 @@ void input_loop()
 
 #define check_params(vec, num, func_name) if (vec.size() != num) { std::cerr << "Wrong number of params in '" << func_name << "' Expected:" << num << ",Actual:" << vec.size() << "\n"; return tok::OpToken(0); }
 #define check_first_param_type(vec) if (vec[0][0].GetType() == tok::FUNCTION && func::table.find(vec[0][0].GetName()) == func::table.end()) {return vec[0][0];}
-void load_builtin_functions(void)
+static void load_builtin_functions(void)
 {
-
 	func::add_builtin_func("pi", 0, [](std::vector<std::vector<tok::OpToken>> s)
 		{
 			check_params(s, 0, "pi");

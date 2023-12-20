@@ -161,8 +161,8 @@ namespace rpn
 		if (operandStack.empty()) 
 		{
 			not_enough_operands:
-			std::cerr << "Invalid input. Not enough operands, cannot solve expression.";
-			return -420.69;
+			std::cerr << "Invalid input. Not enough operands, cannot solve expression.\n";
+			return 0;
 		}
 		return operandStack.top();
 	}
