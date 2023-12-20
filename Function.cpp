@@ -171,6 +171,8 @@ namespace func {
 	// returns index of func with params or -1 on fail
 	int has_function(std::vector<tok::OpToken>& v, bool& reached_depth)
 	{
+		if (v.empty()) return -1;
+		if (v.size() == 1 && v[0].GetType() != tok::TokenType::FUNCTION) return -1;
 		int i;
 		for (i = 0; i < v.size() && (i < MAX_DEPTH); i++)
 		{
@@ -204,7 +206,7 @@ namespace func {
 	std::vector<tok::OpToken> collapse_function(std::vector<tok::OpToken> tokens, bool& encountered_error)
 	{
 		int tmp, depth = 0;
-		while ((tmp = has_function(tokens,encountered_error)) != -1 && (depth++ < MAX_DEPTH))
+		while ((tmp = has_function(tokens,encountered_error)) > -1 && (depth++ < MAX_DEPTH))
 		{
 			if (encountered_error)
 				break;

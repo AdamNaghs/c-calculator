@@ -240,8 +240,6 @@ static void load_builtin_functions(void)
 		{
 			check_params(s, 4, "sum");
 			check_first_param_type(s);
-			for (auto& v : s)
-				rpn::sort(v);
 			s[0][0] = tok::OpToken(rpn::eval(s[0]));
 			s[1][0] = tok::OpToken(rpn::eval(s[1]));
 			std::vector<size_t> idxs;
@@ -256,6 +254,12 @@ static void load_builtin_functions(void)
 				auto expr_copy = expr_vec;
 				for (size_t idx : idxs)
 					expr_copy[idx] = tok::OpToken((cmn::value)n);
+				bool error = false;
+				expr_copy = func::collapse_function(expr_copy, error);
+				if (error)
+				{
+					return tok::OpToken(0);
+				}
 				ret += rpn::eval(expr_copy);
 			}
 			return tok::OpToken(ret);
@@ -300,6 +304,7 @@ static void load_builtin_functions(void)
 int main(void)
 {
 	load_builtin_functions();
+	parse_expr("sum(0,10,n,ln(n))");     
 	parse_expr("!");
 	parse_expr("hypot_len(a,b) = root(2,a^2 + b^2)");
 	parse_expr("hypot_len(3,4)");
@@ -311,7 +316,6 @@ int main(void)
 	parse_expr("x = y");
 	parse_expr("y = x");
 	parse_expr("x");
-	parse_expr("sum(0,10,n+1,ln(n))");
 	parse_expr("list(0, 100, n, ln(n))");
 	parse_expr("pi * cos(0)");
 	// Test cases with expected RPN and expected solution (using doubles)
