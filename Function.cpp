@@ -232,7 +232,7 @@ namespace func {
 	{
 		for (std::vector<tok::OpToken>& tokens : token_vecs) \
 		{
-			collapse_function(tokens, encountered_error);
+			tokens = collapse_function(tokens, encountered_error);
 			if (encountered_error) break;
 		}
 		return token_vecs;

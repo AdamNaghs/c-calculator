@@ -275,6 +275,9 @@ int main(void)
 			std::cout << "\b}\n";
 			return tok::OpToken(ret);
 		});
+	parse_expr("hypot_len(a,b) = root(2,a^2 + b^2)");
+	parse_expr("hypot_len(3,4)");
+	parse_expr("hypot_len(1,pi)");
 	parse_expr("add(x,y) = x + y");
 	parse_expr("add(1,add(1,1))");
 	parse_expr("x(y) = y");
@@ -318,7 +321,7 @@ int main(void)
 	parse_expr("Larc(3)");
 	parse_expr("sum(0,2,x)");
 
-	func::dump_table();
+	//func::dump_table();
 	input_loop();
 	return 0;
 }
