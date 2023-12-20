@@ -14,7 +14,7 @@ namespace func {
 		{
 			s << "(Name: " << pair.first << ", Params: " << tok::vectostr(pair.second.GetParams()) << "\b, Expr: " << tok::vectostr(pair.second.GetExpr()) << "\b, Builtin Params:" << pair.second.builtin.num_params << "), \n";
 		}
-		s << "}";
+		s << "}\n";
 		return s.str();
 	}
 
@@ -123,7 +123,6 @@ namespace func {
 			if (token.GetType() == tok::OPERATOR) {
 				if (token.GetOperator() == cmn::op::L_PAREN) ++parenCount;
 				if (token.GetOperator() == cmn::op::R_PAREN) --parenCount;
-				//std::cout << cmn::optoch(token.GetOperator()) << ' ';
 			}
 			return parenCount == 0;
 			});
@@ -144,7 +143,7 @@ namespace func {
 			tok::OpToken val = table[funcIt->second.GetName()].run_builtin(collapsed);
 			if (val.GetType() == tok::VALUE) 
 			{
-				tokens.erase(leftParenIt, rightParenIt);
+				tokens.erase(leftParenIt, rightParenIt+1);
 				tokens[funcIndex] = val;
 			}
 			else

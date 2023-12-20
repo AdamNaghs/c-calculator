@@ -52,6 +52,12 @@ void parse_expr(std::string input)
 			return;
 		}
 		std::string func_name = tok_vec.at(0).GetName();
+		auto it = func::table.find(func_name);
+		if ((it != func::table.end() && it->second.builtin.available) || func_name == LAST_VALUE)
+		{
+			std::cerr << "Invalid input. Cannot overwrite builtin function '" << func_name << "'.\n";
+			return;
+		}
 		std::vector<tok::OpToken> expr_vec(tok_vec.begin() + found_eq + 1, tok_vec.end());
 		if (found_param_start > -1)
 		{
@@ -63,6 +69,7 @@ void parse_expr(std::string input)
 					cmn::op tmp = token.GetOperator();
 					return token.IsOperator() && tmp && (tmp == cmn::op::COMMA);}),
 				param_vec.end());
+			tok::OpToken func = tok_vec.at(0);
 			std::cout << "Input: " << tok::vectostr(tok_vec) << "\nParams:" << tok::vectostr(param_vec) << "\nExpr:" << tok::vectostr(expr_vec) << "\n\n";
 			for (tok::OpToken param : param_vec)
 			{
@@ -70,6 +77,11 @@ void parse_expr(std::string input)
 				if (type != tok::FUNCTION)
 				{
 					std::cerr << "Invalid input. All parameters must be functions (variables).\n";
+					return;
+				}
+				if (param.GetName() == func_name)
+				{
+					std::cerr << "Invalid input. Parameter name cannot be same as the name of the function it is in.\n";
 					return;
 				}
 			}
@@ -84,8 +96,8 @@ void parse_expr(std::string input)
 	else
 	{
 		bool error = false;
-		std::vector<tok::OpToken> tokens = func::collapse_function(input,error);
-		if (error) 
+		std::vector<tok::OpToken> tokens = func::collapse_function(input, error);
+		if (error)
 		{
 			std::cout << "Error parsing expression:'" << input << "'\n";
 			return;
@@ -152,7 +164,8 @@ void input_loop()
 }
 
 #define check_params(vec, num, func_name) if (vec.size() != num) { std::cerr << "Wrong number of params in '" << func_name << "' Expected:" << num << ",Actual:" << vec.size() << "\n"; return tok::OpToken(0); }
-int main(void)
+#define check_first_param_type(vec) if (vec[0][0].GetType() == tok::FUNCTION && func::table.find(vec[0][0].GetName()) == func::table.end()) {return vec[0][0];}
+static void load_builtin_functions(void)
 {
 	func::add_builtin_func("pi", 0, [](std::vector<std::vector<tok::OpToken>> s)
 		{
@@ -167,25 +180,22 @@ int main(void)
 	func::add_builtin_func("cos", 1, [](std::vector<std::vector<tok::OpToken>> s)
 		{
 			check_params(s, 1, "cos");
+			check_first_param_type(s);
 			rpn::sort(s[0]);
-			if (s[0][0].GetType() == tok::FUNCTION && func::table.find(s[0][0].GetName()) == func::table.end())
-				return s[0][0];
 			return tok::OpToken((cmn::value)std::cos(rpn::eval(s[0])));
-		});	
+		});
 	func::add_builtin_func("sin", 1, [](std::vector<std::vector<tok::OpToken>> s)
 		{
 			check_params(s, 1, "sin");
+			check_first_param_type(s);
 			rpn::sort(s[0]);
-			if (s[0][0].GetType() == tok::FUNCTION && func::table.find(s[0][0].GetName()) == func::table.end())
-				return s[0][0];
 			return tok::OpToken((cmn::value)std::sin(rpn::eval(s[0])));
 		});
 	func::add_builtin_func("tan", 1, [](std::vector<std::vector<tok::OpToken>> s)
 		{
 			check_params(s, 1, "tan");
+			check_first_param_type(s);
 			rpn::sort(s[0]);
-			if (s[0][0].GetType() == tok::FUNCTION && func::table.find(s[0][0].GetName()) == func::table.end())
-				return s[0][0];
 			return tok::OpToken((cmn::value)std::tan(rpn::eval(s[0])));
 		});
 	func::add_builtin_func("log", 2, [](std::vector<std::vector<tok::OpToken>> s)
@@ -193,23 +203,31 @@ int main(void)
 			check_params(s, 2, "log");
 			rpn::sort(s[0]);
 			rpn::sort(s[1]);
-			if (s[2][0].GetType() == tok::FUNCTION && func::table.find(s[2][0].GetName()) == func::table.end())
-				return s[2][0];
+			if (s[2][0].GetType() == tok::FUNCTION && func::table.find(s[2][0].GetName()) == func::table.end())return s[2][0];
 			return tok::OpToken((cmn::value)log(rpn::eval(s[0])) / log(rpn::eval(s[1])));
 		});
 	func::add_builtin_func("ln", 1, [](std::vector<std::vector<tok::OpToken>> s)
 		{
 			check_params(s, 1, "ln");
+			check_first_param_type(s);
 			rpn::sort(s[0]);
-			if (s[0][0].GetType() == tok::FUNCTION && func::table.find(s[0][0].GetName()) == func::table.end())
-				return s[0][0];
 			return tok::OpToken((cmn::value)log(rpn::eval(s[0])));
+		});
+	func::add_builtin_func("sqrt", 1, [](std::vector<std::vector<tok::OpToken>> s)
+		{
+			check_params(s, 1, "root");
+			check_first_param_type(s);
+			for (auto& v : s)
+			{
+				rpn::sort(v);
+				v[0] = tok::OpToken(rpn::eval(v));
+			}
+			return tok::OpToken(powl(s[1][0].GetValue(), (double)1 / s[0][0].GetValue()));
 		});
 	func::add_builtin_func("root", 2, [](std::vector<std::vector<tok::OpToken>> s)
 		{
 			check_params(s, 2, "root");
-			if (s[0][0].GetType() == tok::FUNCTION && func::table.find(s[0][0].GetName()) == func::table.end())
-				return s[0][0];
+			check_first_param_type(s);
 			for (auto& v : s)
 			{
 				rpn::sort(v);
@@ -221,6 +239,7 @@ int main(void)
 	func::add_builtin_func("sum", 4, [](std::vector<std::vector<tok::OpToken>> s)
 		{
 			check_params(s, 4, "sum");
+			check_first_param_type(s);
 			for (auto& v : s)
 				rpn::sort(v);
 			s[0][0] = tok::OpToken(rpn::eval(s[0]));
@@ -244,6 +263,7 @@ int main(void)
 	func::add_builtin_func("list", 4, [](std::vector<std::vector<tok::OpToken>> s)
 		{
 			check_params(s, 4, "list");
+			check_first_param_type(s);
 			rpn::sort(s[0]);
 			rpn::sort(s[1]);
 			rpn::sort(s[2]);
@@ -263,7 +283,7 @@ int main(void)
 				for (size_t idx : idxs)
 					expr_copy[idx] = tok::OpToken((cmn::value)n);
 				bool error = false;
-				auto collapse = func::collapse_function(expr_copy,error);
+				auto collapse = func::collapse_function(expr_copy, error);
 				if (error)
 				{
 					return tok::OpToken(0);
@@ -275,6 +295,12 @@ int main(void)
 			std::cout << "\b}\n";
 			return tok::OpToken(ret);
 		});
+}
+
+int main(void)
+{
+	load_builtin_functions();
+	parse_expr("!");
 	parse_expr("hypot_len(a,b) = root(2,a^2 + b^2)");
 	parse_expr("hypot_len(3,4)");
 	parse_expr("hypot_len(1,pi)");
@@ -320,8 +346,8 @@ int main(void)
 	parse_expr("vec");
 	parse_expr("Larc(3)");
 	parse_expr("sum(0,2,x)");
+	input_loop();
 
 	//func::dump_table();
-	input_loop();
 	return 0;
 }
