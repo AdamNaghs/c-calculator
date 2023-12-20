@@ -46,7 +46,8 @@ namespace func {
 			{
 				if (parenDepth == 0)
 				{
-					if (!currentArg.empty()) {
+					if (!currentArg.empty()) 
+					{
 						arguments.push_back(currentArg);
 						currentArg.clear();
 					}
