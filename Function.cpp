@@ -46,7 +46,8 @@ namespace func {
 			{
 				if (parenDepth == 0)
 				{
-					if (!currentArg.empty()) {
+					if (!currentArg.empty()) 
+					{
 						arguments.push_back(currentArg);
 						currentArg.clear();
 					}
@@ -76,7 +77,14 @@ namespace func {
 				// set parameter to value
 				if (expr.at(i).GetType() == tok::FUNCTION && expr.at(i).GetName() == name.GetName())
 				{
-					expr[i] = v[c].at(0);
+					int tmp = i;
+					for (tok::OpToken t : v[c])
+					{
+						expr.insert(expr.begin() + i, t);
+						i++;
+					}
+					expr.erase(expr.begin() + i);
+					--i;
 				}
 			}
 			c++;
@@ -86,19 +94,28 @@ namespace func {
 		return expr;
 	}
 
-	void proc_func_call(std::vector<tok::OpToken>& tokens, int funcIndex) {
-		if (funcIndex < 0 || funcIndex >= tokens.size()) return;
+	// return 0 on success, 1 on delay evaluation, -1 on failure
+	int proc_func_call(std::vector<tok::OpToken>& tokens, int funcIndex) {
+		if (funcIndex < 0 || funcIndex >= tokens.size()) return FAILURE;
 
 		auto it = tokens.begin() + funcIndex;
-		if (it->GetType() != tok::FUNCTION) return;
+		if (it->GetType() != tok::FUNCTION) return FAILURE;
 		auto funcIt = func::table.find(it->GetName());
-		if (funcIt == func::table.end()) return;
+		if (funcIt == func::table.end()) return FAILURE;
 
 		// Find the left parenthesis
 		auto leftParenIt = std::find_if(it, tokens.end(), [](const tok::OpToken& token) {
 			return (token.GetType() == tok::OPERATOR) && (token.GetOperator() == cmn::op::L_PAREN);
 			});
-		if (leftParenIt == tokens.end()) return;
+		if (leftParenIt == tokens.end())
+		{
+			if (funcIt->second.builtin.num_params + funcIt->second.GetParams().size())
+			{
+				std::cerr << "Invalid input. Expected param count " << funcIt->second.GetParams().size() + funcIt->second.builtin.num_params << ", not 0\n";
+				return INVALID_INPUT;
+			}
+			return FAILURE;
+		}
 
 		// Find the matching right parenthesis, accounting for nested parentheses
 		int parenCount = 1;
@@ -110,11 +127,18 @@ namespace func {
 			}
 			return parenCount == 0;
 			});
-		if (rightParenIt == tokens.end()) return;
+		if (rightParenIt == tokens.end()) return INVALID_INPUT;
 
 		std::vector<tok::OpToken> argTokens(leftParenIt + 1, rightParenIt);
 		std::vector<std::vector<tok::OpToken>> arguments = split_args(argTokens);
-		auto collapsed = collapse_function(arguments);
+		if (arguments.size() != (funcIt->second.GetParams().size() + funcIt->second.builtin.num_params))
+		{
+			std::cerr << "Invalid input. Expected param count " << funcIt->second.GetParams().size() + funcIt->second.builtin.num_params << ", not " << arguments.size() << "\n";
+			return INVALID_INPUT;
+		}
+		bool error = false;
+		std::vector<std::vector<tok::OpToken>> collapsed = collapse_function(arguments, error);
+		if (error) return INVALID_INPUT;
 		if (funcIt->second.builtin.available)
 		{
 			tok::OpToken val = table[funcIt->second.GetName()].run_builtin(collapsed);
@@ -123,22 +147,30 @@ namespace func {
 				tokens.erase(leftParenIt, rightParenIt);
 				tokens[funcIndex] = val;
 			}
-			return;
+			else
+			{
+				return DELAY_EVAL;
+			}
+			return SUCCESS;
 		}
 		std::vector<tok::OpToken> substitutedExpr = sub_params(funcIt->second.GetExpr(), funcIt->second.GetParams(), collapsed);
-		substitutedExpr = collapse_function(substitutedExpr);
-		rpn::sort(substitutedExpr);
-		cmn::value val = rpn::eval(substitutedExpr);
-		substitutedExpr.clear();
-		substitutedExpr.emplace_back(val);
-		tokens.erase(tokens.begin() + funcIndex, rightParenIt + 1 != tokens.end() ? rightParenIt + 1 : tokens.end());
+		substitutedExpr = collapse_function(substitutedExpr,error);
+		if (error) return INVALID_INPUT;
+		//rpn::sort(substitutedExpr);
+		//cmn::value val = rpn::eval(substitutedExpr);
+		//substitutedExpr.clear();
+		//substitutedExpr.emplace_back(val);
+		tokens.erase(tokens.begin() + funcIndex, rightParenIt + 1 <= tokens.end() ? rightParenIt + 1 : tokens.end());
 		//tokens.erase(it, rightParenIt + 1);
 		tokens.insert(tokens.begin() + funcIndex, substitutedExpr.begin(), substitutedExpr.end());
+		return SUCCESS;
 	}
+
+#define check_depth(d,func_name,ret_bool) if (d >= MAX_DEPTH) { std::cerr << "Reached MAX_DEPTH (" << MAX_DEPTH << ") in '" << func_name << "'; check for recursive variable reference.\n"; ret_bool = true;}
 
 	// left hand slice tokenized string, i.e. without =
 	// returns index of func with params or -1 on fail
-	int has_function(std::vector<tok::OpToken>& v)
+	int has_function(std::vector<tok::OpToken>& v, bool& reached_depth)
 	{
 		int i;
 		for (i = 0; i < v.size() && (i < MAX_DEPTH); i++)
@@ -166,43 +198,42 @@ namespace func {
 				return i;
 			}
 		}
-		if (i >= MAX_DEPTH) std::cerr << "\nReached MAX_DEPTH (" << MAX_DEPTH << ") in 'has_function'; check for recursive variable access.\n";
+		check_depth(i, "has_function",reached_depth);
 		return -1;
 	}
 
-	std::vector<tok::OpToken> collapse_function(std::string input)
+	std::vector<tok::OpToken> collapse_function(std::vector<tok::OpToken> tokens, bool& encountered_error)
+	{
+		int tmp, depth = 0;
+		while ((tmp = has_function(tokens,encountered_error)) != -1 && (depth++ < MAX_DEPTH))
+		{
+			if (encountered_error)
+				break;
+			auto ret = proc_func_call(tokens, tmp);
+			if ((ret == INVALID_INPUT))
+			{
+				encountered_error = true;
+				break;
+			}
+			if (ret < FAILURE) break;
+		}
+		check_depth(depth, "collapse_function",encountered_error);
+		return tokens;
+	}
+
+	std::vector<tok::OpToken> collapse_function(std::string input, bool& encountered_error)
 	{
 		std::vector<tok::OpToken> tokens = tok::str_to_optoks(input);
 		if (tokens.empty()) return tokens;
-		int tmp, depth = 0;
-		while (((tmp = has_function(tokens)) != -1) && (depth++ < MAX_DEPTH))
-		{
-			proc_func_call(tokens, tmp);
-		}
-		if (depth >= MAX_DEPTH) std::cerr << "\nReached MAX_DEPTH (" << MAX_DEPTH << ") in 'collapse_function'; check for recursive variable access.\n";
-		return tokens;
+		return collapse_function(tokens, encountered_error);
 	}
 
-	std::vector<tok::OpToken> collapse_function(std::vector<tok::OpToken> tokens)
+	std::vector<std::vector<tok::OpToken>> collapse_function(std::vector<std::vector<tok::OpToken>> token_vecs, bool& encountered_error)
 	{
-		int tmp, depth = 0;
-		while ((tmp = has_function(tokens)) != -1 && (depth++ < MAX_DEPTH))
+		for (std::vector<tok::OpToken>& tokens : token_vecs) \
 		{
-			proc_func_call(tokens, tmp);
-		}
-		if (depth >= MAX_DEPTH) std::cerr << "\nReached MAX_DEPTH (" << MAX_DEPTH << ") in 'collapse_function'; check for recursive variable access.\n";
-		return tokens;
-	}
-
-	std::vector<std::vector<tok::OpToken>> collapse_function(std::vector<std::vector<tok::OpToken>> token_vecs)
-	{
-		for (std::vector<tok::OpToken>& tokens : token_vecs) {
-			int tmp, depth = 0;
-			while ((tmp = has_function(tokens)) != -1 && (depth++ < MAX_DEPTH))
-			{
-				proc_func_call(tokens, tmp);
-			}
-			if (depth >= MAX_DEPTH) std::cerr << "\nReached MAX_DEPTH (" << MAX_DEPTH << ") in 'collapse_function'; check for recursive variable access.\n";
+			collapse_function(tokens, encountered_error);
+			if (encountered_error) break;
 		}
 		return token_vecs;
 	}
@@ -211,5 +242,6 @@ namespace func {
 	{
 		table[name] = Function(name, param_len, func);
 	}
+
 
 }
