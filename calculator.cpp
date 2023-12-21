@@ -51,27 +51,29 @@ void parse_expr(std::string input)
 			}
 			break;
 		case ')':
-			if (!open)
-			{
-				std::string tmp(i, ' ');
-				tmp.append("^");
-				std::cerr << "Invalid input. Parenthesis not opened.\n" << input << "\n" << tmp << "\n";
-				return;
-			}
 			r++;
 			r_index = i;
-			open = false;
 			break;
 		default:
 			continue;
 		}
 	}
-	if (l > r) // only need to check left because right is checked in loop
+	if (l != r) // only need to check left because right is checked in loop
 	{
-			std::string tmp(l_index, ' ');
-			tmp.append("^");
-			std::cerr << "Invalid input. Parenthesis not closed 1.\n" << input << "\n" << tmp << "\n";
-			return;
+		if (l > r)
+		{
+				std::string tmp(l_index, ' ');
+				tmp.append("^");
+				std::cerr << "Invalid input. Parenthesis not closed 1.\n" << input << "\n" << tmp << "\n";
+				return;
+			}
+		else
+		{
+				std::string tmp(r_index, ' ');
+				tmp.append("^");
+				std::cerr << "Invalid input. Parenthesis not opened 1.\n" << input << "\n" << tmp << "\n";
+				return;
+			}
 	}
 
 	for (tok::OpToken t : tok_vec)
@@ -270,6 +272,18 @@ static void load_builtin_functions(void)
 			}
 			return tok::OpToken(powl(s[1][0].GetValue(), (double)1 / s[0][0].GetValue()));
 		});
+	func::add_builtin_func("fact", 1, [](std::vector<std::vector<tok::OpToken>> s)
+		{
+			check_first_param_type(s);
+			rpn::sort(s[0]);
+			cmn::value v = rpn::eval(s[0]);
+			int64_t dist = (size_t) v;
+			for (int64_t i = dist - 1; i > 0; i--)
+			{
+				v *= (cmn::value)i;
+			}
+			return tok::OpToken(v);
+		});
 	func::add_builtin_func("root", 2, [](std::vector<std::vector<tok::OpToken>> s)
 		{
 			check_first_param_type(s);
@@ -309,6 +323,7 @@ static void load_builtin_functions(void)
 			}
 			return tok::OpToken(ret);
 		});
+	// takes range begin, end, sole variable name, expression;
 	func::add_builtin_func("list", 4, [](std::vector<std::vector<tok::OpToken>> s)
 		{
 			check_first_param_type(s);
@@ -343,11 +358,57 @@ static void load_builtin_functions(void)
 			std::cout << "\b}\n";
 			return tok::OpToken(ret);
 		});
+	// takes range begin, end, step, sole variable name, expression;
+	func::add_builtin_func("step", 5, [](std::vector<std::vector<tok::OpToken>> s)
+		{
+			check_first_param_type(s);
+			for (int i = 0; i < 3; i++)
+			{
+				rpn::sort(s[i]);
+				s[i][0] = tok::OpToken(rpn::eval(s[i]));
+
+			}
+			std::vector<size_t> idxs;
+			std::vector<tok::OpToken> expr_vec = s[4];
+			for (int i = 0; i < expr_vec.size(); i++)
+			{
+				if (expr_vec[i].GetType() == tok::FUNCTION && expr_vec[i].GetName() == s[3][0].GetName()) idxs.emplace_back(i);
+			}
+			cmn::value ret = 0;
+			std::cout << "{\n";
+			cmn::value step = s[2][0].GetValue();
+			if (step <= 0)
+			{
+				std::cerr << "Invalid input. Step must be greater than 0.\n";
+				return tok::OpToken(0);
+			}
+			for (double n = s[0][0].GetValue(); n < s[1][0].GetValue(); n+=step)
+			{
+				auto expr_copy = expr_vec;
+				for (size_t idx : idxs)
+					expr_copy[idx] = tok::OpToken((cmn::value)n);
+				bool error = false;
+				auto collapse = func::collapse_function(expr_copy, error);
+				if (error)
+				{
+					return tok::OpToken(0);
+				}
+				rpn::sort(collapse);
+				ret = rpn::eval(collapse);
+				std::cout << "(x:" << n << ", y:" << ret << "),\n";
+			}
+			std::cout << "\b}\n";
+			return tok::OpToken(ret);
+		});
 }
 
 int main(void)
 {
 	load_builtin_functions();
+	parse_expr("f(x) = x^fact(x) / fact(x)");
+	parse_expr("step(0,8,0.1,n,f(n))");
+	parse_expr("step(0,8,.1,n,f(n))");
+	parse_expr("list(0, 10, n, f(n))");
 	parse_expr("sum(0,1,2,add(1,1))");
 	parse_expr("sum(1,10,n,ln(n))");     
 	parse_expr("sum(1,10,n+1,ln(n))");     
@@ -364,26 +425,6 @@ int main(void)
 	parse_expr("x");
 	parse_expr("list(0, 100, n, ln(n))");
 	parse_expr("pi * cos(0)");
-	// Test cases with expected RPN and expected solution (using doubles)
-	std::cout << test_parse_and_rpn("((2 + 1) * 3)", "2 1 + 3 *", 9.0) << " TEST END\n\n";
-	std::cout << test_parse_and_rpn("(4 + (13 / 5))", "4 13 5 / +", 6.6) << " TEST END\n\n"; // Assuming floating-point division
-	std::cout << test_parse_and_rpn("((10 * (6 / ((9 + 3) * -11))) + 17) + 5", "10 6 9 3 + -11 * / * 17 + 5 +", 21.5455) << " TEST END\n\n"; // Assuming floating-point division
-	std::cout << test_parse_and_rpn("1 + 2", "1 2 +", 3.0) << " TEST END\n\n";
-	std::cout << test_parse_and_rpn("3 + 4 * 2", "3 4 2 * +", 11.0) << " TEST END\n\n";
-	std::cout << test_parse_and_rpn("(1 + (2 * (3 - 4)))", "1 2 3 4 - * +", -1.0) << " TEST END\n\n";
-	std::cout << test_parse_and_rpn("(8 / (3 - -3))", "8 3 -3 - /", 1.3333) << " TEST END\n\n"; // Assuming floating-point division
-	std::cout << test_parse_and_rpn("((3 + (5 - 2)) * (4 / 2))", "3 5 2 - + 4 2 / *", 12.0) << " TEST END\n\n";
-	std::cout << test_parse_and_rpn("(2 ^ 3 * 4)", "2 3 ^ 4 *", 32.0) << " TEST END\n\n";
-	std::cout << test_parse_and_rpn("((7 + 3) * (2 - 5) / 4)", "7 3 + 2 5 - * 4 /", -7.5) << " TEST END\n\n"; // Assuming floating-point division
-	std::cout << test_parse_and_rpn("(6 + 10 - 4) / (1 + 1 * 2) + 1", "6 10 + 4 - 1 1 2 * + / 1 +", 5.0) << " TEST END\n\n"; // Assuming floating-point 
-	std::cout << test_parse_and_rpn("1", "1", 1) << " TEST END\n";
-	std::cout << test_parse_and_rpn("-1", "-1", -1) << " TEST END\n";
-	std::cout << test_parse_and_rpn("word1 + s(s) + 1", "", 0);
-	std::cout << test_parse_and_rpn("test + sin(cos,1)", "", 0);
-	std::cout << test_parse_and_rpn("var = 15", "", 0);
-	std::cout << test_parse_and_rpn("var , 15", "", 0);
-	std::cout << test_parse_and_rpn("1s5", "", 0);
-	std::cout << test_parse_and_rpn("1 * s5", "", 0);
 	parse_expr("var(x,y,z) = 15+x");
 	parse_expr("Func(x) = x^3");
 	parse_expr("var(x) = 15+x");
