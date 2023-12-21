@@ -500,7 +500,19 @@ private:
 		}
 		else if (input == "mem")
 		{
-			print_map_capacity(internal_graph.get_points());
+			auto map = internal_graph.get_lines();
+			std::map<plot::Point, Color> points;
+			for (auto it = map.begin(); it != map.end(); it++)
+			{
+				points.insert(std::make_pair<>(it->first.start,it->second));
+				points.insert(std::make_pair<>(it->first.end, it->second));
+			}
+			print_map_capacity(points);
+			return;
+		}
+		else if (input == "clear")
+		{
+			internal_graph.clear();
 			return;
 		}
 		else if (input == "help")

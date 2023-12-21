@@ -272,7 +272,7 @@ void load_builtin_functions(void)
 				if (expr_vec[i].GetType() == tok::FUNCTION && expr_vec[i].GetName() == var_vec[0].GetName()) idxs.emplace_back(i);
 			}
 			cmn::value ret = 0;
-			auto pair = calc.get_x_axis();
+			auto pair = calc.get_y_axis();
 			cmn::value start = pair.first;
 			cmn::value end = pair.second;
 			double step = calc.get_precision().first;
@@ -322,16 +322,95 @@ void load_builtin_functions(void)
 				plot::Point tmp = plot::Point(n, ret);
 				if (!first && (std::abs(ret - last.y) < threshold)) {
 					// Check if the difference between consecutive points is below the threshold
-					calc.add_line(plot::LineSegment(last, plot::Point(n, ret)));
+					calc.add_line(plot::LineSegment(last, tmp));
 				}
 				first = false;
-				last = plot::Point(n, ret);
+				last = tmp;
 				if (rpn::debug)
 				std::cout << "(x:" << n << ", y:" << ret << "),\n";
 				//calc.add_point(plot::Point(n, ret));
 			}
 			if (rpn::debug)
 			std::cout << "\b}\n";
+			calc.set_threshold(step);
+			auto end_time = std::chrono::high_resolution_clock::now();
+			std::chrono::duration<double, std::milli> duration = end_time - start_time;
+			std::cout << "Plot took " << duration.count() << "ms\n";
+			return tok::OpToken(ret);
+		});
+
+	func::add_builtin_func("plot_addx", 2, [](std::vector<std::vector<tok::OpToken>> s)
+		{
+			auto start_time = std::chrono::high_resolution_clock::now();
+			std::vector<size_t> idxs;
+			std::vector<tok::OpToken> expr_vec = s[1];
+			std::vector<tok::OpToken> var_vec = s[0];
+			for (int i = 0; i < expr_vec.size(); i++)
+			{
+				if (expr_vec[i].GetType() == tok::FUNCTION && expr_vec[i].GetName() == var_vec[0].GetName()) idxs.emplace_back(i);
+			}
+			cmn::value ret = 0;
+			auto pair = calc.get_x_axis();
+			cmn::value start = pair.first;
+			cmn::value end = pair.second;
+			double step = calc.get_precision().first;
+			std::string name = "plot_add(";
+			for (auto& v : s)
+			{
+				name.append(tok::vectostr(v) + ",");
+			}
+			name.append("\b)");
+			plot::Point last;
+			bool first = true;
+			double x_axis_range = calc.get_graph().get_x_end() - calc.get_graph().get_x_start();
+			// Set the threshold as a small percentage of the y-axis range
+			const double threshold = 0.05 * x_axis_range; // Example: 5% of the y-axis range
+
+			if (rpn::debug)
+			{
+				std::cout << "{\n";
+			}
+			#pragma omp parallel for
+			for (cmn::value n = start; (start > end) ? (n > end) : (n < end); n += (start > end) ? (-step) : (step))
+			{
+				auto expr_copy = expr_vec;
+				for (size_t idx : idxs)
+				{
+					expr_copy[idx] = tok::OpToken((cmn::value)n);
+				}
+				bool error = false;
+				bool ran = false;
+				std::vector<tok::OpToken> collapse;//= func::collapse_function(expr_copy, error);
+				for (auto& v : expr_copy)
+				{
+					if (v.GetType() == tok::FUNCTION)
+					{
+						collapse = func::collapse_function(expr_copy, error);
+						ran = true;
+						break;
+					}
+				}
+				if (error)
+				{
+					return tok::OpToken(0);
+				}
+				if (!ran) collapse = expr_copy;
+				rpn::sort(collapse);
+				ret = rpn::eval(collapse);
+				plot::Point tmp = plot::Point(ret, n);
+				if (!first && (std::abs(ret - last.x) < threshold)) {
+					// Check if the difference between consecutive points is below the threshold
+					
+					calc.add_line(plot::LineSegment(last, tmp));
+				}
+				first = false;
+				last = tmp;
+				if (rpn::debug)
+					std::cout << "(x:" << n << ", y:" << ret << "),\n";
+				//calc.add_point(plot::Point(n, ret));
+			}
+			if (rpn::debug)
+				std::cout << "\b}\n";
 			calc.set_threshold(step);
 			auto end_time = std::chrono::high_resolution_clock::now();
 			std::chrono::duration<double, std::milli> duration = end_time - start_time;

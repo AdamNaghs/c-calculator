@@ -32,6 +32,9 @@ namespace plot
 		bool operator!=(const Point& other) const {
 			return !(*this == other);
 		}
+		Point as_negative() {
+			return Point(-x, -y);
+		}
 	};
 
 	bool is_continous(const plot::Point& p1, const plot::Point& p2, double threshold = 1e6) {
@@ -96,7 +99,7 @@ namespace plot
 		Graph(){}
 		~Graph()
 		{
-			points.clear();
+			lines.clear();
 			//normalized_points.clear();
 		}
 
@@ -115,7 +118,7 @@ namespace plot
 
 		void clear_points()
 		{
-			points.clear();
+			lines.clear();
 			//normalized_points.clear();
 		}
 
@@ -228,9 +231,9 @@ namespace plot
 			this->fgcolor = color;
 		}
 
-		std::map<plot::Point, Color> get_points()
+		std::map<LineSegment, Color> get_lines()
 		{
-			return points;
+			return lines;
 		}
 
 		//std::vector<Point> get_normalized_points()
@@ -287,17 +290,23 @@ namespace plot
 			this->axiscolor = color;
 		}
 
+		void clear()
+		{
+			//points.clear();
+			lines.clear();
+		}
+
 
 		double precision_x() const {
 			double x_range = abs(x_axis.end - x_axis.start);
 			double pixelsPerUnitX = static_cast<double>(dim.width) / x_range;
-			return 0.5 / pixelsPerUnitX;
+			return 1 / pixelsPerUnitX;
 		}
 
 		double precision_y() const {
 			double y_range = abs(x_axis.end - x_axis.start);
 			double pixelsPerUnitY = static_cast<double>(dim.height) / y_range;
-			return 0.5 / pixelsPerUnitY;
+			return 1 / pixelsPerUnitY;
 		}
 
 		Color get_bgcolor()
@@ -343,7 +352,7 @@ namespace plot
 		{
 			int start, end;
 		} x_axis, y_axis;
-		std::map<plot::Point, Color> points;
+		//std::map<plot::Point, Color> points;
 		std::map<LineSegment,Color> lines;
 		//std::vector<Point> normalized_points;
 		Color bgcolor;
