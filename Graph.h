@@ -1,23 +1,26 @@
 #pragma once
 
 #include <iostream>
-#include <vector>
+#include <map>
 #include <cmath>
 #include <raylib.h>
 
 namespace plot
 {
-
 	class Point
 	{
 	public:
 		double x, y;
 		Point(double x, double y) : x(x), y(y) {}
-		~Point() {}
+		//~Point() {}
 		friend std::ostream& operator<<(std::ostream& os, const Point& p)
 		{
 			os << "(" << p.x << ", " << p.y << ")";
 			return os;
+		}
+		bool operator<(const Point& other) const {
+			if (x != other.x) return x < other.x;
+			return y < other.y;
 		}
 	};
 
@@ -38,18 +41,22 @@ namespace plot
 			y_axis.end = y_end;
 			bgcolor = BLACK;
 			fgcolor = GREEN;
+			gridcolor = LIGHTGRAY;
+			axiscolor = RED;
+			//points.reserve(abs(x_start) + abs(x_end) + abs(y_start) + abs(y_end));
 		}
 		Graph(){}
 		~Graph()
 		{
 			points.clear();
-			normalized_points.clear();
+			//normalized_points.clear();
 		}
 
 		void add_point(Point p)
 		{
-			points.push_back(p);
-			normalized_points.push_back(normalize_point(p));
+			if (invalid_point(p)) return;
+			points.insert(std::make_pair<>(p,fgcolor));
+			//normalized_points.push_back(normalize_point(p));
 		}
 
 		void add_point(double x, double y)
@@ -58,12 +65,19 @@ namespace plot
 		}
 
 
-		void add_point(std::vector<Point> points)
+		void add_point(std::vector<Point> _points)
 		{
-			for (int i = 0; i < points.size(); i++)
+			for (int i = 0; i < _points.size(); i++)
 			{
-				add_point(points[i]);
+				add_point(_points[i]);
 			}
+		}
+
+
+		void clear_points()
+		{
+			points.clear();
+			//normalized_points.clear();
 		}
 
 		Point normalize_point(Point p)
@@ -71,25 +85,31 @@ namespace plot
 			return Point((p.x - x_axis.start) / (x_axis.end - x_axis.start), (p.y - y_axis.start) / (y_axis.end - y_axis.start));
 		}
 
-		std::vector<Point> normalize_points()
-		{
-			std::vector<Point> normalizedPoints;
-			for (int i = 0; i < points.size(); i++)
-			{
-				normalizedPoints.push_back(normalize_point(points[i]));
-			}
-			return normalizedPoints;
-		}
+		//std::vector<Point> normalize_points()
+		//{
+		//	std::vector<Point> normalizedPoints;
+		//	for (int i = 0; i < points.size(); i++)
+		//	{
+		//		normalizedPoints.push_back(normalize_point(points[i]));
+		//	}
+		//	return normalizedPoints;
+		//}
 
 		void draw_axis()
 		{
-			DrawRectangle(loc.x, loc.y, dim.width, dim.height, bgcolor);
+			
 			int x_axis_y = loc.y + dim.height * (1.0 - (0.0 - y_axis.start) / (y_axis.end - y_axis.start));
 			int y_axis_x = loc.x + dim.width * ((0.0 - x_axis.start) / (x_axis.end - x_axis.start));
-			DrawLine(loc.x, x_axis_y, loc.x + dim.width, x_axis_y, fgcolor);
-			DrawLine(y_axis_x, loc.y, y_axis_x, loc.y + dim.height, fgcolor);
+			DrawLine(loc.x, x_axis_y, loc.x + dim.width, x_axis_y, axiscolor);
+			DrawLine(y_axis_x, loc.y, y_axis_x, loc.y + dim.height, axiscolor);
+		}
+
+		void draw_ticks()
+		{
+			int x_axis_y = loc.y + dim.height * (1.0 - (0.0 - y_axis.start) / (y_axis.end - y_axis.start));
+			int y_axis_x = loc.x + dim.width * ((0.0 - x_axis.start) / (x_axis.end - x_axis.start));
 			// Draw x-axis ticks
-			for (int i = x_axis.start; i <= x_axis.end; ++i) {
+			for (int i = x_axis.start; i < x_axis.end; ++i) {
 				int tickX = loc.x + (i - x_axis.start) * dim.width / (x_axis.end - x_axis.start);
 				DrawLine(tickX, x_axis_y - 5, tickX, x_axis_y + 5, fgcolor);
 			}
@@ -101,14 +121,46 @@ namespace plot
 			}
 		}
 
+		void draw_grid()
+		{
+			// Draw x-axis grid lines
+			for (int i = x_axis.start; i < x_axis.end; ++i) {
+				int x = loc.x + (i - x_axis.start) * dim.width / (x_axis.end - x_axis.start);
+				DrawLine(x, loc.y, x, loc.y + dim.height, gridcolor);
+			}
+
+			// Draw y-axis grid lines
+			for (int i = y_axis.start; i <= y_axis.end; ++i) {
+				int y = loc.y + (1.0 - (i - y_axis.start) / (double)(y_axis.end - y_axis.start)) * dim.height;;
+				DrawLine(loc.x, y, loc.x + dim.width, y, gridcolor);
+			}
+		}
+
+		void draw_bg()
+		{
+			DrawRectangle(loc.x, loc.y, dim.width, dim.height, bgcolor);
+		}
+
+		void draw()
+		{
+			draw_bg();
+			draw_grid();
+			draw_axis();
+			draw_ticks();
+			plot();
+		}
+
+
 		void plot()
 		{
-			for (Point p : normalized_points)
+			#pragma omp parallel for
+			for (auto point : points)
 			{
+				Point p = normalize_point(point.first);
 				double inverted_y = 1.0 - p.y;
 				int x = loc.x + p.x * dim.width;
 				int y = loc.y + inverted_y * dim.height;
-				DrawCircle(x, y, 2, fgcolor);
+				DrawCircle(x, y, 2, point.second);
 			}
 		}
 
@@ -122,15 +174,15 @@ namespace plot
 			this->fgcolor = color;
 		}
 
-		std::vector<Point> get_points()
+		std::map<Point,Color> get_points()
 		{
 			return points;
 		}
 
-		std::vector<Point> get_normalized_points()
-		{
-			return normalized_points;
-		}
+		//std::vector<Point> get_normalized_points()
+		//{
+		//	return normalized_points;
+		//}
 
 		int get_width()
 		{
@@ -152,7 +204,56 @@ namespace plot
 			return loc.y;
 		}
 
+		int get_x_start()
+		{
+			return x_axis.start;
+		}
+
+		int get_x_end()
+		{
+			return x_axis.end;
+		}
+
+		int get_y_start()
+		{
+			return y_axis.start;
+		}
+
+		int get_y_end()
+		{
+			return y_axis.end;
+		}
+
+		void set_gridcolor(Color color)
+		{
+			this->gridcolor = color;
+		}
+		void set_axiscolor(Color color)
+		{
+			this->axiscolor = color;
+		}
+
+
 	private:
+		double distanceBetweenPoints(const Point& a, const Point& b) {
+			return std::sqrt((a.x - b.x) * (a.x - b.x) + (a.y - b.y) * (a.y - b.y));
+		}
+		bool invalid_point(Point p) {
+			// Check for NaN
+			if (std::isnan(p.x) || std::isnan(p.y)) return true;
+
+			// Check for infinity or negative infinity
+			if (std::isinf(p.x) || std::isinf(p.y)) return true;
+
+			// Check for subnormal (denormal) numbers
+			if (p.x != 0.0 && std::abs(p.x) < std::numeric_limits<cmn::value>::min()) return true;
+			if (p.y != 0.0 && std::abs(p.y) < std::numeric_limits<cmn::value>::min()) return true;
+
+			if (p.x < get_x_start() || p.x > get_x_end()) return true;
+			if (p.y < get_y_start() || p.y > get_y_end()) return true;
+
+			return false;
+		}
 		struct
 		{
 			int x, y;
@@ -165,12 +266,13 @@ namespace plot
 		{
 			int start, end;
 		} x_axis, y_axis;
-		std::vector<Point> points;
-		std::vector<Point> normalized_points;
+		std::map<Point,Color> points;
+		//std::vector<Point> normalized_points;
 		Color bgcolor;
 		Color fgcolor;
+		Color gridcolor;
+		Color axiscolor;
 
 	};
-	void plot(Graph graph, std::string name);
 
 } // namespace plot

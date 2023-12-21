@@ -194,6 +194,7 @@ namespace func {
 						std::vector<std::vector<tok::OpToken>> empty_vec;
 						tmp.emplace_back(v[i] = tok::OpToken(funct.run_builtin(empty_vec)));
 					}
+					if (func::table.find(it->second.GetName()) == func::table.end()) return -1;
 					tmp.insert(tmp.begin(), tok::OpToken(cmn::L_PAREN));
 					tmp.insert(tmp.end(), tok::OpToken(cmn::R_PAREN));
 					v.erase(v.begin() + i);
@@ -236,8 +237,10 @@ namespace func {
 
 	std::vector<std::vector<tok::OpToken>> collapse_function(std::vector<std::vector<tok::OpToken>> token_vecs, bool& encountered_error)
 	{
-		for (std::vector<tok::OpToken>& tokens : token_vecs) 
+		for (std::vector<tok::OpToken>& tokens : token_vecs) \
 		{
+			if (tokens.empty()) continue;
+			if (tokens.size() == 1 && tokens[0].GetType() == tok::TokenType::VALUE) continue;
 			tokens = collapse_function(tokens, encountered_error);
 			if (encountered_error) break;
 		}
