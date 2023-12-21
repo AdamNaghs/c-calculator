@@ -212,8 +212,9 @@ void load_builtin_functions(void)
 			cmn::value ret = 0;
 			cmn::value start = s[0][0].GetValue();
 			cmn::value end = s[1][0].GetValue();
-			std::cout << "{\n";
 			std::vector<plot::Point> points;
+			std::cout << "{\n";
+			#pragma omp parallel for
 			for (double n = start; (start > end) ? (n > end) : (n < end); n += (start > end) ? (-step) : (step))
 			{
 				auto expr_copy = expr_vec;

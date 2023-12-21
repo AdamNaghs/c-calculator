@@ -14,6 +14,11 @@ namespace plot
 		double x, y;
 		Point(double x, double y) : x(x), y(y) {}
 		~Point() {}
+		friend std::ostream& operator<<(std::ostream& os, const Point& p)
+		{
+			os << "(" << p.x << ", " << p.y << ")";
+			return os;
+		}
 	};
 
 

@@ -10,6 +10,8 @@
 #include "rpn.h"
 #include "Graph.h"
 #include <raylib.h>
+#include <chrono>
+#include <future>
 
 #define LAST_VALUE "!"
 #define WINDOW_WIDTH 1000
@@ -174,41 +176,36 @@ public:
 	}
 	void input_loop()
 	{
-		std::string input;
-		while (1)
-		{
+		auto input_future = std::async(std::launch::async, [&]() {
+			std::string input;
 			std::cout << "\nInput expression: ";
 			std::getline(std::cin, input);
-			std::cout << std::endl;
-			if (input == "quit")
-			{
-				if (window_open) CloseWindow();
-				break;
-			}
-			else if (input == "table")
-			{
-				std::cout << func::tabletostr();
-				continue;
-			}
-			else if (input.find("test ") == 0)
-			{
-				input.erase(input.begin(), input.begin() + 5);
-				test_parse_and_rpn(input, "", 0);
-				continue;
-			}
-			else if (input == "dump")
-			{
-				func::dump_table();
-				continue;
-			}
-			else if (input == "debug")
-			{
-				rpn::debug = !rpn::debug;
-				std::cout << "Debug mode " << (rpn::debug ? "enabled" : "disabled") << "\n";
-				continue;
-			} 
-			parse_expr(input);
+			std::cout << "\n";
+			return input;
+			});
+
+		while (1)
+		{
 			update_graph();
+			// Check if input is ready
+			if (input_future.wait_for(std::chrono::milliseconds(0)) == std::future_status::ready) {
+				std::string input = input_future.get();
+
+				// Process the input
+				handle_input(input);
+
+				// Prepare for the next input
+				input_future = std::async(std::launch::async, [&]() {
+					std::string new_input;
+					std::cout << "\nInput expression: ";
+					std::getline(std::cin, new_input);
+					std::cout << "\n";
+					return new_input;
+					});
+			}
+
+			// Sleep for a short duration to reduce CPU usage
+			std::this_thread::sleep_for(std::chrono::milliseconds(10));
 		}
 	}
 	void plot(plot::Graph graph, std::string name)
@@ -231,6 +228,39 @@ private:
 	plot::Graph internal_graph;
 
 	std::string internal_graph_name;
+
+
+	void handle_input(std::string input)
+	{
+		if (input == "quit")
+		{
+			if (window_open) CloseWindow();
+			exit(0);
+		}
+		else if (input == "table")
+		{
+			std::cout << func::tabletostr();
+			return;
+		}
+		else if (input.find("test ") == 0)
+		{
+			input.erase(input.begin(), input.begin() + 5);
+			test_parse_and_rpn(input, "", 0);
+			return;
+		}
+		else if (input == "dump")
+		{
+			func::dump_table();
+			return;
+		}
+		else if (input == "debug")
+		{
+			rpn::debug = !rpn::debug;
+			std::cout << "Debug mode " << (rpn::debug ? "enabled" : "disabled") << "\n";
+			return;
+		}
+		parse_expr(input);
+	}
 
 	bool test_parse_and_rpn(const std::string& input, const std::string& expected_rpn, const cmn::value expected_result)
 	{
