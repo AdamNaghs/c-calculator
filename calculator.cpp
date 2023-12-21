@@ -21,11 +21,57 @@ void parse_expr(std::string input)
 	const std::vector<tok::OpToken> empty_vec;
 	std::vector<tok::OpToken> tok_vec = tok::str_to_optoks(input);
 
-	// find parenthesis containing param names
-	if (!cmn::do_paren_match(input))
+	int l = 0, r = 0;
+	int l_index = -1, r_index = -1;
+	bool open = false;
+	for (int i = 0; i < input.size(); i++)
 	{
-		std::cerr << "Invalid input. Parenthesis do not match.\n";
-		return;
+		char c = input.at(i);
+		switch (c)
+		{
+		case '(':
+			l++;
+			l_index = i;
+			open = true;
+			if (r > l)
+			{
+				std::string tmp(i, ' ');
+				tmp.append("^");
+				std::cerr << "Invalid input. Parenthesis not closed.\n" << input << "\n" << tmp << "\n";
+				return;
+			}
+			break;
+		case ',':
+			if (l == r) // no open parenthesis
+			{
+				std::string tmp(i, ' ');
+				tmp.append("^");
+				std::cerr << "Invalid input. Unexpected comma.\n" << input << "\n" << tmp << "\n";
+				return;
+			}
+			break;
+		case ')':
+			if (!open)
+			{
+				std::string tmp(i, ' ');
+				tmp.append("^");
+				std::cerr << "Invalid input. Parenthesis not opened.\n" << input << "\n" << tmp << "\n";
+				return;
+			}
+			r++;
+			r_index = i;
+			open = false;
+			break;
+		default:
+			continue;
+		}
+	}
+	if (l > r) // only need to check left because right is checked in loop
+	{
+			std::string tmp(l_index, ' ');
+			tmp.append("^");
+			std::cerr << "Invalid input. Parenthesis not closed 1.\n" << input << "\n" << tmp << "\n";
+			return;
 	}
 
 	for (tok::OpToken t : tok_vec)
@@ -361,6 +407,10 @@ int main(void)
 	parse_expr("vec");
 	parse_expr("Larc(3)");
 	parse_expr("sum(0,2,x)");
+	parse_expr("c(s = 1");
+	parse_expr("c((s) = 1");
+	parse_expr("c((s");
+	parse_expr("c))");
 	input_loop();
 
 	//func::dump_table();

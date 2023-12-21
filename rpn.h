@@ -15,5 +15,4 @@ namespace rpn {
 
 	void eval(const std::vector<std::vector<tok::OpToken>>& UNsorted_tokens);
 	
-	cmn::value eval_str(const std::string);
 }

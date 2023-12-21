@@ -95,7 +95,7 @@ namespace func {
 	}
 
 	// return 0 on success, 1 on delay evaluation, -1 on failure
-	int proc_func_call(std::vector<tok::OpToken>& tokens, int funcIndex) {
+	return_code proc_func_call(std::vector<tok::OpToken>& tokens, int funcIndex) {
 		if (funcIndex < 0 || funcIndex >= tokens.size()) return FAILURE;
 
 		auto it = tokens.begin() + funcIndex;
@@ -115,6 +115,11 @@ namespace func {
 				return INVALID_INPUT;
 			}
 			return FAILURE;
+		}
+		if (leftParenIt->GetOperator() == cmn::op::COMMA)
+		{
+			std::cerr << "Invalid input. Unexpected comma.\n";
+			return INVALID_INPUT;
 		}
 
 		// Find the matching right parenthesis, accounting for nested parentheses

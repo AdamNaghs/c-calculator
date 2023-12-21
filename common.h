@@ -22,6 +22,5 @@ char optoch(enum op o);
 enum op chtoop(char c);
 int opcmp(enum op a, enum op b);
 int getPrecedence(enum op o);
-bool do_paren_match(std::string input);
 
 }

@@ -4,27 +4,6 @@ namespace cmn
 {
 
 
-    bool do_paren_match(std::string input)
-    {
-        int l = 0, r = 0;
-        for (char c : input)
-        {
-            switch (c)
-            {
-            case '(':
-                l++;
-                if (r > l) return false;
-                break;
-            case ')':
-                r++;
-                break;
-            default:
-                continue;
-            }
-        }
-        return l == r;
-    }
-
     int getPrecedence(enum op o)
     {
         switch (o)
