@@ -96,16 +96,23 @@ void parse_expr(std::string input)
 	else
 	{
 		bool error = false;
-		std::vector<tok::OpToken> tokens = func::collapse_function(input, error);
+		std::vector<tok::OpToken> tokens = tok::str_to_optoks(input);
+		std::vector<tok::OpToken> collapsed = func::collapse_function(tokens, error);
 		if (error)
 		{
 			std::cout << "Error parsing expression:'" << input << "'\n";
 			return;
 		}
-		rpn::sort(tokens);
-		cmn::value n = rpn::eval(tokens);
+		std::string tmp = "";
+		if (collapsed != tokens)
+		{
+			std::string col_str = tok::vectostr(collapsed);
+			tmp.append(" = " + col_str);
+		}
+		rpn::sort(collapsed);
+		cmn::value n = rpn::eval(collapsed);
 		func::table[LAST_VALUE] = func::Function(LAST_VALUE, empty_vec, { tok::OpToken(n) });
-		std::cout << n << " = " << input << '\n';
+		std::cout << n << " = " << input << tmp << "\n";
 	}
 }
 

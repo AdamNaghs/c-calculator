@@ -95,9 +95,16 @@ std::string vectodbgstr(std::vector<OpToken> v)
 std::string vectostr(std::vector<OpToken> v)
 {
     std::stringstream s;
-    for (auto t : v)
+    bool last_was_excluded = false;
+    for (int i = 0; i < v.size(); i++)
     {
-        s << t.toString() << ' ';
+        std::string tmp = v[i].toString();
+        cmn::op op = v[i].GetOperator();
+        if (op != cmn::COMMA && op != cmn::L_PAREN && op != cmn::R_PAREN && op != cmn::NONE)
+        {
+            tmp = ' ' + tmp + ' ';
+        }
+        s << tmp;
     }
     return s.str();
 }
