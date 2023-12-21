@@ -112,7 +112,9 @@ private:
     } data;
 
 };
-
+const OpToken func_token = OpToken("func");
+const OpToken val_token = OpToken(0);
+const OpToken op_token = OpToken(cmn::op::NONE);
 
 std::vector<OpToken> str_to_optoks(std::string s);
 
