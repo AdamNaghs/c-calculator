@@ -236,7 +236,7 @@ namespace func {
 
 	std::vector<std::vector<tok::OpToken>> collapse_function(std::vector<std::vector<tok::OpToken>> token_vecs, bool& encountered_error)
 	{
-		for (std::vector<tok::OpToken>& tokens : token_vecs) \
+		for (std::vector<tok::OpToken>& tokens : token_vecs) 
 		{
 			tokens = collapse_function(tokens, encountered_error);
 			if (encountered_error) break;

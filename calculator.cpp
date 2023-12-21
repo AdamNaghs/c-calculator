@@ -6,9 +6,11 @@
 #include <stack>
 #include <stdexcept>
 #include <cmath> 
+#include "common.h"
 #include "OpToken.h"
-#include "rpn.h"
 #include "Function.h"
+#include "rpn.h"
+#include "Graph.h"
 
 #define LAST_VALUE "!"
 
@@ -221,22 +223,22 @@ void input_loop()
 }
 
 // should sort before running to remove parenthesis
-bool check_param_types(std::vector<std::vector<tok::OpToken>> vec, std::vector<tok::OpToken> types)
+int check_param_types(std::vector<std::vector<tok::OpToken>> vec, std::vector<tok::OpToken> types)
 {
 	for (int i = 0; i < std::min(types.size(), vec.size()); i++)
 	{
 		if (vec[i].size() != 1)
 		{
 			//std::cerr << "Invalid input. Expected type " << types[i].GetType() << " at index " << i << ", not " << vec[i].GetType() << "\n";
-			return false;
+			return i;
 		}
 		if (vec[i][0].GetType() != types[i].GetType())
 		{
 			//std::cerr << "Invalid input. Expected type " << types[i].GetType() << " at index " << i << ", not " << vec[i].GetType() << "\n";
-			return false;
+			return i;
 		}
 	}
-	return true;
+	return -1;
 }
 #define check_first_param_type(vec) if (vec[0][0].GetType() == tok::FUNCTION && func::table.find(vec[0][0].GetName()) == func::table.end()) {return vec[0][0];}
 static void load_builtin_functions(void)
@@ -252,19 +254,22 @@ static void load_builtin_functions(void)
 	func::add_builtin_func("cos", 1, [](std::vector<std::vector<tok::OpToken>> s)
 		{
 			rpn::sort(s[0]);
-			if (!check_param_types(s, { tok::val_token })) return tok::OpToken(0);
+			int tmp; 
+			if(-1 != (tmp = check_param_types(s, { tok::val_token }))) return s[tmp][0];
 			return tok::OpToken((cmn::value)std::cos(rpn::eval(s[0])));
 		});
 	func::add_builtin_func("sin", 1, [](std::vector<std::vector<tok::OpToken>> s)
 		{
 			rpn::sort(s[0]);
-			if (!check_param_types(s, { tok::val_token })) return tok::OpToken(0);
+			int tmp; 
+			if(-1 != (tmp = check_param_types(s, { tok::val_token }))) return s[tmp][0];
 			return tok::OpToken((cmn::value)std::sin(rpn::eval(s[0])));
 		});
 	func::add_builtin_func("tan", 1, [](std::vector<std::vector<tok::OpToken>> s)
 		{
 			rpn::sort(s[0]);
-			if (!check_param_types(s, { tok::val_token })) return tok::OpToken(0);
+			int tmp; 
+			if(-1 != (tmp = check_param_types(s, { tok::val_token }))) return s[tmp][0];
 			return tok::OpToken((cmn::value)std::tan(rpn::eval(s[0])));
 		});
 	func::add_builtin_func("log", 2, [](std::vector<std::vector<tok::OpToken>> s)
@@ -272,27 +277,31 @@ static void load_builtin_functions(void)
 			check_first_param_type(s);
 			rpn::sort(s[0]);
 			rpn::sort(s[1]);
-			if (!check_param_types(s, { tok::val_token, tok::val_token })) return tok::OpToken(0);
+			int tmp; 
+			if(-1 != (tmp = check_param_types(s, { tok::val_token, tok::val_token }))) return s[tmp][0];
 			return tok::OpToken((cmn::value)log(rpn::eval(s[0])) / log(rpn::eval(s[1])));
 		});
 	func::add_builtin_func("ln", 1, [](std::vector<std::vector<tok::OpToken>> s)
 		{
 			check_first_param_type(s);
 			rpn::sort(s[0]);
-			if (!check_param_types(s, { tok::val_token })) return tok::OpToken(0);
+			int tmp; 
+			if(-1 != (tmp = check_param_types(s, { tok::val_token }))) return s[tmp][0];
 			return tok::OpToken((cmn::value)log(rpn::eval(s[0])));
 		});
 	func::add_builtin_func("sqrt", 1, [](std::vector<std::vector<tok::OpToken>> s)
 		{
 			rpn::sort(s[0]);
-			if (!check_param_types(s, { tok::val_token })) return tok::OpToken(0);
+			int tmp; 
+			if(-1 != (tmp = check_param_types(s, { tok::val_token }))) return s[tmp][0];
 			check_first_param_type(s);
 			return tok::OpToken(powl(s[0][0].GetValue(), (double)1 / (double)2));
 		});
 	func::add_builtin_func("fact", 1, [](std::vector<std::vector<tok::OpToken>> s)
 		{
 			rpn::sort(s[0]);
-			if (!check_param_types(s, { tok::val_token })) return tok::OpToken(0);
+			int tmp; 
+			if(-1 != (tmp = check_param_types(s, { tok::val_token }))) return s[tmp][0];
 			check_first_param_type(s);
 			cmn::value v = rpn::eval(s[0]);
 			int64_t dist = (size_t)v;
@@ -304,7 +313,8 @@ static void load_builtin_functions(void)
 		});
 	func::add_builtin_func("root", 2, [](std::vector<std::vector<tok::OpToken>> s)
 		{
-			if (!check_param_types(s, { tok::val_token,tok::val_token })) return tok::OpToken(0);
+			int tmp; 
+			if(-1 != (tmp = check_param_types(s, { tok::val_token,tok::val_token }))) return s[tmp][0];
 			check_first_param_type(s);
 			for (auto& v : s)
 			{
@@ -319,7 +329,8 @@ static void load_builtin_functions(void)
 			check_first_param_type(s);
 			rpn::sort(s[0]);
 			rpn::sort(s[1]);
-			if (!check_param_types(s, { tok::val_token , tok::val_token })) return tok::OpToken(0); // not checking last two params because can be any type
+			int tmp; 
+			if(-1 != (tmp = check_param_types(s, { tok::val_token , tok::val_token }))) return s[tmp][0]; // not checking last two params because can be any type
 			cmn::value end = rpn::eval(s[1]);
 			cmn::value start = rpn::eval(s[0]);
 			std::vector<size_t> idxs;
@@ -350,14 +361,16 @@ static void load_builtin_functions(void)
 		{
 			rpn::sort(s[0]);
 			rpn::sort(s[1]);
-			if (!check_param_types(s, { tok::val_token , tok::val_token })) return tok::OpToken(0); // not checking last two params because can be any type
+			int tmp; 
+			if(-1 != (tmp = check_param_types(s, { tok::val_token , tok::val_token }))) return s[tmp][0]; // not checking last two params because can be any type
 			check_first_param_type(s);
 			rpn::sort(s[2]);
 			std::vector<size_t> idxs;
 			std::vector<tok::OpToken> expr_vec = s[3];
-			for (int i = 0; i < s[3].size(); i++)
+			std::vector<tok::OpToken> var_vec = s[2];
+			for (int i = 0; i < expr_vec.size(); i++)
 			{
-				if (s[3][i].GetType() == tok::FUNCTION && s[3][i].GetName() == s[2][0].GetName()) idxs.emplace_back(i);
+				if (expr_vec[i].GetType() == tok::FUNCTION && expr_vec[i].GetName() == var_vec[0].GetName()) idxs.emplace_back(i);
 			}
 			cmn::value ret = 0;
 			cmn::value end = rpn::eval(s[1]);
@@ -381,6 +394,61 @@ static void load_builtin_functions(void)
 			std::cout << "\b}\n";
 			return tok::OpToken(ret);
 		});
+	// takes x-axist start & end, y-axis start & end, sole variable name, expression;
+	func::add_builtin_func("plot", 6, [](std::vector<std::vector<tok::OpToken>> s)
+		{
+			static const double step = 0.01;
+			for (int i = 0; i < 4; i++)
+			{
+				rpn::sort(s[i]);
+				s[i][0] = tok::OpToken(rpn::eval(s[i]));
+			}
+			int tmp; 
+			if(-1 != (tmp = check_param_types(s, { tok::val_token , tok::val_token, tok::val_token, tok::val_token }))) return s[tmp][0]; // not checking last two params because can be any type
+			check_first_param_type(s);
+			rpn::sort(s[2]);
+			std::vector<size_t> idxs;
+			std::vector<tok::OpToken> expr_vec = s[5];
+			std::vector<tok::OpToken> var_vec = s[4];
+			for (int i = 0; i < expr_vec.size(); i++)
+			{
+				if (expr_vec[i].GetType() == tok::FUNCTION && expr_vec[i].GetName() == var_vec[0].GetName()) idxs.emplace_back(i);
+			}
+			cmn::value ret = 0;
+			cmn::value start = s[0][0].GetValue();
+			cmn::value end = s[1][0].GetValue();
+			std::cout << "{\n";
+			std::vector<plot::Point> points;
+			for (double n = start; (start > end) ? (n > end) : (n < end); n += (start > end) ? (-step) : (step))
+			{
+				auto expr_copy = expr_vec;
+				for (size_t idx : idxs)
+				{
+					expr_copy[idx] = tok::OpToken((cmn::value)n);
+				}
+				bool error = false;
+				auto collapse = func::collapse_function(expr_copy, error);
+				if (error)
+				{
+					return tok::OpToken(0);
+				}
+				rpn::sort(collapse);
+				ret = rpn::eval(collapse);
+				points.emplace_back(plot::Point(n, ret));
+				std::cout << "(x:" << n << ", y:" << ret << "),\n";
+			}
+			std::cout << "\b}\n";
+			plot::Graph g(0, 0, 1000, 1000, (int)start, (int)end, (int)s[2][0].GetValue(), (int) s[3][0].GetValue());
+			g.add_point(points);
+			std::string name = "sum(";
+			for (auto& v : s)
+			{
+				name.append(tok::vectostr(v) + ",");
+			}
+			name.append("\b)");
+			plot::plot(g, name);
+			return tok::OpToken(ret);
+		});
 	// takes range begin, end, step, sole variable name, expression;
 	func::add_builtin_func("step", 5, [](std::vector<std::vector<tok::OpToken>> s)
 		{
@@ -389,7 +457,8 @@ static void load_builtin_functions(void)
 			{
 				rpn::sort(s[i]);
 			}
-			if (!check_param_types(s, { tok::val_token , tok::val_token, tok::val_token })) return tok::OpToken(0); // not checking last two params because can be any type
+			int tmp; 
+			if(-1 != (tmp = check_param_types(s, { tok::val_token , tok::val_token, tok::val_token }))) return s[tmp][0]; // not checking last two params because can be any type
 			cmn::value step = s[2][0].GetValue();
 			if (step <= 0)
 			{
@@ -429,6 +498,7 @@ static void load_builtin_functions(void)
 int main(void)
 {
 	load_builtin_functions();
+	parse_expr("list(0,5,x,cos(x))");
 	parse_expr("e");
 	parse_expr("pi");
 	parse_expr("cos(pi)");
@@ -480,6 +550,8 @@ int main(void)
 	parse_expr("c((s) = 1");
 	parse_expr("c((s");
 	parse_expr("c))");
+	func::dump_table();
+	parse_expr("plot(-5,5,-5,5,n,cos(n))");
 
 	input_loop();
 

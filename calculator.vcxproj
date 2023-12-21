@@ -122,12 +122,14 @@
     <ClCompile Include="calculator.cpp" />
     <ClCompile Include="common.cpp" />
     <ClCompile Include="Function.cpp" />
+    <ClCompile Include="Graph.cpp" />
     <ClCompile Include="OpToken.cpp" />
     <ClCompile Include="rpn.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="common.h" />
     <ClInclude Include="Function.h" />
+    <ClInclude Include="Graph.h" />
     <ClInclude Include="OpToken.h" />
     <ClInclude Include="rpn.h" />
   </ItemGroup>
