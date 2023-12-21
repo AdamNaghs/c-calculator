@@ -4,18 +4,23 @@
 #include "rpn.h"
 #include "OpToken.h"
 
+
 namespace rpn
 {
 	bool debug = false;
 
+	// sorting removes commas and parenthesis
 	void sort(std::vector<tok::OpToken>& v)
 	{
 		std::stack<tok::OpToken> ops;
 		std::stack<tok::OpToken> ret;
 
+		if (debug)
+			std::cout << "Sorting: " << tok::vectostr(v) << '\n' << std::endl;
 
-		for (tok::OpToken tok : v)
+		for (int i = 0; i < v.size();i++)
 		{
+			tok::OpToken tok = v[i];
 			// if digit push to ret
 			cmn::op op = tok.GetOperator();
 			switch (op)
@@ -70,6 +75,7 @@ namespace rpn
 			// cout
 			if (debug)
 			{
+				std::cout << i << ": " << tok << '\n';
 				if (!ret.empty())
 				{
 					std::vector<tok::OpToken> tmp;
@@ -121,9 +127,15 @@ namespace rpn
 	cmn::value eval(const std::vector<tok::OpToken>& tokens) {
 		std::stack<cmn::value> operandStack;
 
-		for (const auto& token : tokens) {
+		for (const tok::OpToken& token : tokens) {
 			if (!token.IsOperator()) {
 				// Push number onto the stack
+				if (token.GetType() == tok::FUNCTION) 
+				{
+					// functions are handled by collapse_functions before evaluation
+					std::cerr << "Invalid input. Function '" << token.GetName() <<"' not defined.\n";
+					return 0;
+				}
 				operandStack.push(token.GetValue());
 			}
 			else {
@@ -165,28 +177,6 @@ namespace rpn
 			return 0;
 		}
 		return operandStack.top();
-	}
-
-	void eval(const std::vector<std::vector<tok::OpToken>>& unsorted)
-	{
-		for (std::vector<tok::OpToken> v : unsorted)
-		{
-			sort(v);
-			eval(v);
-		}
-
-	}
-
-	cmn::value eval_str(std::string input)
-	{
-		if (!cmn::do_paren_match(input))
-		{
-			std::cerr << "Invalid input. Parenthesis do not match.\n";
-			return 0;
-		}
-		std::vector<tok::OpToken> vec = tok::str_to_optoks(input);
-		sort(vec);
-		return eval(vec);
 	}
 
 }

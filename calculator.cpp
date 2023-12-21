@@ -21,11 +21,59 @@ void parse_expr(std::string input)
 	const std::vector<tok::OpToken> empty_vec;
 	std::vector<tok::OpToken> tok_vec = tok::str_to_optoks(input);
 
-	// find parenthesis containing param names
-	if (!cmn::do_paren_match(input))
+	int l = 0, r = 0;
+	int l_index = -1, r_index = -1;
+	bool open = false;
+	for (int i = 0; i < input.size(); i++)
 	{
-		std::cerr << "Invalid input. Parenthesis do not match.\n";
-		return;
+		char c = input.at(i);
+		switch (c)
+		{
+		case '(':
+			l++;
+			l_index = i;
+			open = true;
+			if (r > l)
+			{
+				std::string tmp(i, ' ');
+				tmp.append("^");
+				std::cerr << "Invalid input. Parenthesis not closed.\n" << input << "\n" << tmp << "\n";
+				return;
+			}
+			break;
+		case ',':
+			if (l == r) // no open parenthesis
+			{
+				std::string tmp(i, ' ');
+				tmp.append("^");
+				std::cerr << "Invalid input. Unexpected comma.\n" << input << "\n" << tmp << "\n";
+				return;
+			}
+			break;
+		case ')':
+			r++;
+			r_index = i;
+			break;
+		default:
+			continue;
+		}
+	}
+	if (l != r) // only need to check left because right is checked in loop
+	{
+		if (l > r)
+		{
+				std::string tmp(l_index, ' ');
+				tmp.append("^");
+				std::cerr << "Invalid input. Parenthesis not closed 1.\n" << input << "\n" << tmp << "\n";
+				return;
+			}
+		else
+		{
+				std::string tmp(r_index, ' ');
+				tmp.append("^");
+				std::cerr << "Invalid input. Parenthesis not opened 1.\n" << input << "\n" << tmp << "\n";
+				return;
+			}
 	}
 
 	for (tok::OpToken t : tok_vec)
@@ -64,11 +112,12 @@ void parse_expr(std::string input)
 			// init function with params
 			// must only be param_names
 			std::vector<tok::OpToken> param_vec(tok_vec.begin() + found_param_start + 1, tok_vec.begin() + found_param_end);
-			param_vec.erase(std::remove_if(param_vec.begin() + 1, param_vec.end(),
-				[](tok::OpToken token) {
-					cmn::op tmp = token.GetOperator();
-					return token.IsOperator() && tmp && (tmp == cmn::op::COMMA);}),
-				param_vec.end());
+			if (!param_vec.empty())
+				param_vec.erase(std::remove_if(param_vec.begin() + 1, param_vec.end(),
+					[](tok::OpToken token) {
+						cmn::op tmp = token.GetOperator();
+						return token.IsOperator() && tmp && (tmp == cmn::op::COMMA);}),
+					param_vec.end());
 			tok::OpToken func = tok_vec.at(0);
 			std::cout << "Input: " << tok::vectostr(tok_vec) << "\nParams:" << tok::vectostr(param_vec) << "\nExpr:" << tok::vectostr(expr_vec) << "\n\n";
 			for (tok::OpToken param : param_vec)
@@ -96,16 +145,23 @@ void parse_expr(std::string input)
 	else
 	{
 		bool error = false;
-		std::vector<tok::OpToken> tokens = func::collapse_function(input, error);
+		std::vector<tok::OpToken> tokens = tok::str_to_optoks(input);
+		std::vector<tok::OpToken> collapsed = func::collapse_function(tokens, error);
 		if (error)
 		{
 			std::cout << "Error parsing expression:'" << input << "'\n";
 			return;
 		}
-		rpn::sort(tokens);
-		cmn::value n = rpn::eval(tokens);
+		std::string tmp = "";
+		if (collapsed != tokens)
+		{
+			std::string col_str = tok::vectostr(collapsed);
+			tmp.append(" = " + col_str);
+		}
+		rpn::sort(collapsed);
+		cmn::value n = rpn::eval(collapsed);
 		func::table[LAST_VALUE] = func::Function(LAST_VALUE, empty_vec, { tok::OpToken(n) });
-		std::cout << n << " = " << input << '\n';
+		std::cout << n << " = " << input << tmp << "\n";
 	}
 }
 
@@ -157,50 +213,45 @@ void input_loop()
 		else if (input == "debug")
 		{
 			rpn::debug = !rpn::debug;
+			std::cout << "Debug mode " << (rpn::debug ? "enabled" : "disabled") << "\n";
 			continue;
 		}
 		parse_expr(input);
 	}
 }
 
-#define check_params(vec, num, func_name) if (vec.size() != num) { std::cerr << "Wrong number of params in '" << func_name << "' Expected:" << num << ",Actual:" << vec.size() << "\n"; return tok::OpToken(0); }
 #define check_first_param_type(vec) if (vec[0][0].GetType() == tok::FUNCTION && func::table.find(vec[0][0].GetName()) == func::table.end()) {return vec[0][0];}
 static void load_builtin_functions(void)
 {
 	func::add_builtin_func("pi", 0, [](std::vector<std::vector<tok::OpToken>> s)
 		{
-			check_params(s, 0, "pi");
 			return tok::OpToken(3.14159265359);
 		});
 	func::add_builtin_func("e", 0, [](std::vector<std::vector<tok::OpToken>> s)
 		{
-			check_params(s, 0, "e");
 			return tok::OpToken(2.718281828459045);
 		});
 	func::add_builtin_func("cos", 1, [](std::vector<std::vector<tok::OpToken>> s)
 		{
-			check_params(s, 1, "cos");
 			check_first_param_type(s);
 			rpn::sort(s[0]);
 			return tok::OpToken((cmn::value)std::cos(rpn::eval(s[0])));
 		});
 	func::add_builtin_func("sin", 1, [](std::vector<std::vector<tok::OpToken>> s)
 		{
-			check_params(s, 1, "sin");
 			check_first_param_type(s);
 			rpn::sort(s[0]);
 			return tok::OpToken((cmn::value)std::sin(rpn::eval(s[0])));
 		});
 	func::add_builtin_func("tan", 1, [](std::vector<std::vector<tok::OpToken>> s)
 		{
-			check_params(s, 1, "tan");
 			check_first_param_type(s);
 			rpn::sort(s[0]);
 			return tok::OpToken((cmn::value)std::tan(rpn::eval(s[0])));
 		});
 	func::add_builtin_func("log", 2, [](std::vector<std::vector<tok::OpToken>> s)
 		{
-			check_params(s, 2, "log");
+			check_first_param_type(s);
 			rpn::sort(s[0]);
 			rpn::sort(s[1]);
 			if (s[2][0].GetType() == tok::FUNCTION && func::table.find(s[2][0].GetName()) == func::table.end())return s[2][0];
@@ -208,14 +259,12 @@ static void load_builtin_functions(void)
 		});
 	func::add_builtin_func("ln", 1, [](std::vector<std::vector<tok::OpToken>> s)
 		{
-			check_params(s, 1, "ln");
 			check_first_param_type(s);
 			rpn::sort(s[0]);
 			return tok::OpToken((cmn::value)log(rpn::eval(s[0])));
 		});
 	func::add_builtin_func("sqrt", 1, [](std::vector<std::vector<tok::OpToken>> s)
 		{
-			check_params(s, 1, "root");
 			check_first_param_type(s);
 			for (auto& v : s)
 			{
@@ -224,9 +273,20 @@ static void load_builtin_functions(void)
 			}
 			return tok::OpToken(powl(s[1][0].GetValue(), (double)1 / s[0][0].GetValue()));
 		});
+	func::add_builtin_func("fact", 1, [](std::vector<std::vector<tok::OpToken>> s)
+		{
+			check_first_param_type(s);
+			rpn::sort(s[0]);
+			cmn::value v = rpn::eval(s[0]);
+			int64_t dist = (size_t) v;
+			for (int64_t i = dist - 1; i > 0; i--)
+			{
+				v *= (cmn::value)i;
+			}
+			return tok::OpToken(v);
+		});
 	func::add_builtin_func("root", 2, [](std::vector<std::vector<tok::OpToken>> s)
 		{
-			check_params(s, 2, "root");
 			check_first_param_type(s);
 			for (auto& v : s)
 			{
@@ -238,10 +298,9 @@ static void load_builtin_functions(void)
 	// takes range begin, end, sole variable name, expression;
 	func::add_builtin_func("sum", 4, [](std::vector<std::vector<tok::OpToken>> s)
 		{
-			check_params(s, 4, "sum");
 			check_first_param_type(s);
-			s[0][0] = tok::OpToken(rpn::eval(s[0]));
-			s[1][0] = tok::OpToken(rpn::eval(s[1]));
+			cmn::value end = rpn::eval(s[1]);
+			cmn::value start = rpn::eval(s[0]);
 			std::vector<size_t> idxs;
 			std::vector<tok::OpToken> expr_vec = s[3];
 			for (int i = 0; i < s[3].size(); i++)
@@ -249,7 +308,7 @@ static void load_builtin_functions(void)
 				if (s[3][i].GetType() == tok::FUNCTION && s[2][0].GetType() == tok::FUNCTION && s[3][i].GetName() == s[2][0].GetName()) idxs.emplace_back(i);
 			}
 			cmn::value ret = 0;
-			for (size_t n = ((size_t)s[0][0].GetValue()); n < ((size_t)s[1][0].GetValue()); n++)
+			for (size_t n = (size_t)start; (start > end) ? (n > end) : (n < end);(start > end) ? (n--) : (n++))
 			{
 				auto expr_copy = expr_vec;
 				for (size_t idx : idxs)
@@ -265,15 +324,13 @@ static void load_builtin_functions(void)
 			}
 			return tok::OpToken(ret);
 		});
+	// takes range begin, end, sole variable name, expression;
 	func::add_builtin_func("list", 4, [](std::vector<std::vector<tok::OpToken>> s)
 		{
-			check_params(s, 4, "list");
 			check_first_param_type(s);
 			rpn::sort(s[0]);
 			rpn::sort(s[1]);
 			rpn::sort(s[2]);
-			s[0][0] = tok::OpToken(rpn::eval(s[0]));
-			s[1][0] = tok::OpToken(rpn::eval(s[1]));
 			std::vector<size_t> idxs;
 			std::vector<tok::OpToken> expr_vec = s[3];
 			for (int i = 0; i < s[3].size(); i++)
@@ -281,8 +338,54 @@ static void load_builtin_functions(void)
 				if (s[3][i].GetType() == tok::FUNCTION && s[3][i].GetName() == s[2][0].GetName()) idxs.emplace_back(i);
 			}
 			cmn::value ret = 0;
+			cmn::value end = rpn::eval(s[1]);
+			cmn::value start = rpn::eval(s[0]);
 			std::cout << "{\n";
-			for (size_t n = ((size_t)s[0][0].GetValue()); n < ((size_t)s[1][0].GetValue()); n++)
+			for (size_t n = ((size_t)start); (start > end) ? (n > end) : (n < end);(start > end) ? (n--) : (n++))
+			{
+				auto expr_copy = expr_vec;
+				for (size_t idx : idxs)
+					expr_copy[idx] = tok::OpToken((cmn::value)n);
+				bool error = false;
+				auto collapse = func::collapse_function(expr_copy, error);
+				if (error)
+				{
+					return tok::OpToken(0);
+				}
+				rpn::sort(collapse);
+				ret = rpn::eval(collapse);
+				std::cout << "(x:" << n << ", y:" << ret << "),\n";
+			}
+			std::cout << "\b}\n";
+			return tok::OpToken(ret);
+		});
+	// takes range begin, end, step, sole variable name, expression;
+	func::add_builtin_func("step", 5, [](std::vector<std::vector<tok::OpToken>> s)
+		{
+			check_first_param_type(s);
+			for (int i = 0; i < 3; i++)
+			{
+				rpn::sort(s[i]);
+				s[i][0] = tok::OpToken(rpn::eval(s[i]));
+
+			}
+			cmn::value step = s[2][0].GetValue();
+			if (step <= 0)
+			{
+				std::cerr << "Invalid input. Step must be greater than 0.\n";
+				return tok::OpToken(0);
+			}
+			std::vector<size_t> idxs;
+			std::vector<tok::OpToken> expr_vec = s[4];
+			for (int i = 0; i < expr_vec.size(); i++)
+			{
+				if (expr_vec[i].GetType() == tok::FUNCTION && expr_vec[i].GetName() == s[3][0].GetName()) idxs.emplace_back(i);
+			}
+			cmn::value ret = 0;
+			cmn::value end = rpn::eval(s[1]);
+			cmn::value start = rpn::eval(s[0]);
+			std::cout << "{\n";
+			for (double n = start; (start > end) ? (n > end) : (n < end); n += (start > end) ? (-step) : (step))
 			{
 				auto expr_copy = expr_vec;
 				for (size_t idx : idxs)
@@ -305,6 +408,12 @@ static void load_builtin_functions(void)
 int main(void)
 {
 	load_builtin_functions();
+	parse_expr("v() = 7");
+	parse_expr("v");
+	parse_expr("f(x) = x^fact(x) / fact(x)");
+	parse_expr("step(0,8,0.1,n,f(n))");
+	parse_expr("step(0,8,.1,n,f(n))");
+	parse_expr("list(0, 10, n, f(n))");
 	parse_expr("sum(0,1,2,add(1,1))");
 	parse_expr("sum(1,10,n,ln(n))");     
 	parse_expr("sum(1,10,n+1,ln(n))");     
@@ -321,26 +430,6 @@ int main(void)
 	parse_expr("x");
 	parse_expr("list(0, 100, n, ln(n))");
 	parse_expr("pi * cos(0)");
-	// Test cases with expected RPN and expected solution (using doubles)
-	std::cout << test_parse_and_rpn("((2 + 1) * 3)", "2 1 + 3 *", 9.0) << " TEST END\n\n";
-	std::cout << test_parse_and_rpn("(4 + (13 / 5))", "4 13 5 / +", 6.6) << " TEST END\n\n"; // Assuming floating-point division
-	std::cout << test_parse_and_rpn("((10 * (6 / ((9 + 3) * -11))) + 17) + 5", "10 6 9 3 + -11 * / * 17 + 5 +", 21.5455) << " TEST END\n\n"; // Assuming floating-point division
-	std::cout << test_parse_and_rpn("1 + 2", "1 2 +", 3.0) << " TEST END\n\n";
-	std::cout << test_parse_and_rpn("3 + 4 * 2", "3 4 2 * +", 11.0) << " TEST END\n\n";
-	std::cout << test_parse_and_rpn("(1 + (2 * (3 - 4)))", "1 2 3 4 - * +", -1.0) << " TEST END\n\n";
-	std::cout << test_parse_and_rpn("(8 / (3 - -3))", "8 3 -3 - /", 1.3333) << " TEST END\n\n"; // Assuming floating-point division
-	std::cout << test_parse_and_rpn("((3 + (5 - 2)) * (4 / 2))", "3 5 2 - + 4 2 / *", 12.0) << " TEST END\n\n";
-	std::cout << test_parse_and_rpn("(2 ^ 3 * 4)", "2 3 ^ 4 *", 32.0) << " TEST END\n\n";
-	std::cout << test_parse_and_rpn("((7 + 3) * (2 - 5) / 4)", "7 3 + 2 5 - * 4 /", -7.5) << " TEST END\n\n"; // Assuming floating-point division
-	std::cout << test_parse_and_rpn("(6 + 10 - 4) / (1 + 1 * 2) + 1", "6 10 + 4 - 1 1 2 * + / 1 +", 5.0) << " TEST END\n\n"; // Assuming floating-point 
-	std::cout << test_parse_and_rpn("1", "1", 1) << " TEST END\n";
-	std::cout << test_parse_and_rpn("-1", "-1", -1) << " TEST END\n";
-	std::cout << test_parse_and_rpn("word1 + s(s) + 1", "", 0);
-	std::cout << test_parse_and_rpn("test + sin(cos,1)", "", 0);
-	std::cout << test_parse_and_rpn("var = 15", "", 0);
-	std::cout << test_parse_and_rpn("var , 15", "", 0);
-	std::cout << test_parse_and_rpn("1s5", "", 0);
-	std::cout << test_parse_and_rpn("1 * s5", "", 0);
 	parse_expr("var(x,y,z) = 15+x");
 	parse_expr("Func(x) = x^3");
 	parse_expr("var(x) = 15+x");
@@ -353,6 +442,11 @@ int main(void)
 	parse_expr("vec");
 	parse_expr("Larc(3)");
 	parse_expr("sum(0,2,x)");
+	parse_expr("c(s = 1");
+	parse_expr("c((s) = 1");
+	parse_expr("c((s");
+	parse_expr("c))");
+
 	input_loop();
 
 	//func::dump_table();

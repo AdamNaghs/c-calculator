@@ -95,7 +95,7 @@ namespace func {
 	}
 
 	// return 0 on success, 1 on delay evaluation, -1 on failure
-	int proc_func_call(std::vector<tok::OpToken>& tokens, int funcIndex) {
+	return_code proc_func_call(std::vector<tok::OpToken>& tokens, int funcIndex) {
 		if (funcIndex < 0 || funcIndex >= tokens.size()) return FAILURE;
 
 		auto it = tokens.begin() + funcIndex;
@@ -111,10 +111,15 @@ namespace func {
 		{
 			if (funcIt->second.builtin.num_params + funcIt->second.GetParams().size())
 			{
-				std::cerr << "Invalid input. Expected param count " << funcIt->second.GetParams().size() + funcIt->second.builtin.num_params << ", not 0\n";
+				std::cerr << "Invalid input. Function '" << funcIt->second.GetName() << "' expected param count " << funcIt->second.GetParams().size() + funcIt->second.builtin.num_params << ", not 0\n";
 				return INVALID_INPUT;
 			}
 			return FAILURE;
+		}
+		if (leftParenIt->GetOperator() == cmn::op::COMMA)
+		{
+			std::cerr << "Invalid input. Unexpected comma.\n";
+			return INVALID_INPUT;
 		}
 
 		// Find the matching right parenthesis, accounting for nested parentheses
@@ -132,7 +137,7 @@ namespace func {
 		std::vector<std::vector<tok::OpToken>> arguments = split_args(argTokens);
 		if (arguments.size() != (funcIt->second.GetParams().size() + funcIt->second.builtin.num_params))
 		{
-			std::cerr << "Invalid input. Expected param count " << funcIt->second.GetParams().size() + funcIt->second.builtin.num_params << ", not " << arguments.size() << "\n";
+			std::cerr << "Invalid input. Function '" << funcIt->second.GetName() << "' expected param count " << funcIt->second.GetParams().size() + funcIt->second.builtin.num_params << ", not " << arguments.size() << "\n";
 			return INVALID_INPUT;
 		}
 		bool error = false;

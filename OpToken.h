@@ -63,6 +63,23 @@ public:
 
     friend std::ostream& operator<<(std::ostream& os, OpToken& token);
 
+    bool operator==(const OpToken& other) const {
+        if (type == other.type)
+        {
+            switch (type)
+            {
+			case TokenType::OPERATOR:
+				return data.op == other.data.op;
+			case TokenType::VALUE:
+				return data.val == other.data.val;
+			case TokenType::FUNCTION:
+				return func_name == other.func_name;
+			default:
+				return false;
+			}
+		}
+    }
+
     std::string toString()
     {
         std::stringstream s;
