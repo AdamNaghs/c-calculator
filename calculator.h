@@ -13,6 +13,12 @@
 #include <chrono>
 #include <future>
 #include <map>
+#include <cmath>
+#include <limits>
+
+
+
+
 
 #define LAST_VALUE "!"
 #define WINDOW_WIDTH 1500
@@ -192,7 +198,6 @@ public:
 			if (input_future.wait_for(std::chrono::milliseconds(0)) == std::future_status::ready) {
 				std::string input = input_future.get();
 
-				// Process the input
 				handle_input(input);
 
 				// Prepare for the next input
@@ -216,9 +221,7 @@ public:
 		internal_graph_name = name;
 		BeginDrawing();
 		ClearBackground(WHITE);
-
-		internal_graph.draw_axis();
-		internal_graph.plot();
+		internal_graph.draw();
 		// Draw points
 		EndDrawing();
 	}
@@ -256,9 +259,16 @@ public:
 	void add_point(std::vector<plot::Point> v)
 	{
 		internal_graph.add_point(v);
+		update_graph();
 	}
 
+	void set_threshold(double threshold)
+	{
+		this->threshold = threshold;
+	}
 private:
+	double threshold = 0.1;
+
 	bool window_open = false;
 
 	plot::Graph internal_graph;
@@ -347,6 +357,19 @@ private:
 			input.erase(input.begin(), input.begin() + 6);
 			Color color = get_color(input);
 			internal_graph.set_bgcolor(color);
+			return;
+		}
+		else if (input.find("setgrid ") == 0)
+		{
+			input.erase(input.begin(), input.begin() + 8);
+			Color color = get_color(input);
+			internal_graph.set_gridcolor(color);
+			return;
+		}else if (input.find("setaxis ") == 0)
+		{
+			input.erase(input.begin(), input.begin() + 8);
+			Color color = get_color(input);
+			internal_graph.set_axiscolor(color);
 			return;
 		}
 		else if (input == "colors")
