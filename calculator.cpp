@@ -299,8 +299,8 @@ static void load_builtin_functions(void)
 	func::add_builtin_func("sum", 4, [](std::vector<std::vector<tok::OpToken>> s)
 		{
 			check_first_param_type(s);
-			s[0][0] = tok::OpToken(rpn::eval(s[0]));
-			s[1][0] = tok::OpToken(rpn::eval(s[1]));
+			cmn::value end = rpn::eval(s[1]);
+			cmn::value start = rpn::eval(s[0]);
 			std::vector<size_t> idxs;
 			std::vector<tok::OpToken> expr_vec = s[3];
 			for (int i = 0; i < s[3].size(); i++)
@@ -308,7 +308,7 @@ static void load_builtin_functions(void)
 				if (s[3][i].GetType() == tok::FUNCTION && s[2][0].GetType() == tok::FUNCTION && s[3][i].GetName() == s[2][0].GetName()) idxs.emplace_back(i);
 			}
 			cmn::value ret = 0;
-			for (size_t n = ((size_t)s[0][0].GetValue()); n < ((size_t)s[1][0].GetValue()); n++)
+			for (size_t n = (size_t)start; (start > end) ? (n > end) : (n < end);(start > end) ? (n--) : (n++))
 			{
 				auto expr_copy = expr_vec;
 				for (size_t idx : idxs)
@@ -331,8 +331,6 @@ static void load_builtin_functions(void)
 			rpn::sort(s[0]);
 			rpn::sort(s[1]);
 			rpn::sort(s[2]);
-			s[0][0] = tok::OpToken(rpn::eval(s[0]));
-			s[1][0] = tok::OpToken(rpn::eval(s[1]));
 			std::vector<size_t> idxs;
 			std::vector<tok::OpToken> expr_vec = s[3];
 			for (int i = 0; i < s[3].size(); i++)
@@ -340,8 +338,10 @@ static void load_builtin_functions(void)
 				if (s[3][i].GetType() == tok::FUNCTION && s[3][i].GetName() == s[2][0].GetName()) idxs.emplace_back(i);
 			}
 			cmn::value ret = 0;
+			cmn::value end = rpn::eval(s[1]);
+			cmn::value start = rpn::eval(s[0]);
 			std::cout << "{\n";
-			for (size_t n = ((size_t)s[0][0].GetValue()); n < ((size_t)s[1][0].GetValue()); n++)
+			for (size_t n = ((size_t)start); (start > end) ? (n > end) : (n < end);(start > end) ? (n--) : (n++))
 			{
 				auto expr_copy = expr_vec;
 				for (size_t idx : idxs)
@@ -369,6 +369,12 @@ static void load_builtin_functions(void)
 				s[i][0] = tok::OpToken(rpn::eval(s[i]));
 
 			}
+			cmn::value step = s[2][0].GetValue();
+			if (step <= 0)
+			{
+				std::cerr << "Invalid input. Step must be greater than 0.\n";
+				return tok::OpToken(0);
+			}
 			std::vector<size_t> idxs;
 			std::vector<tok::OpToken> expr_vec = s[4];
 			for (int i = 0; i < expr_vec.size(); i++)
@@ -376,14 +382,10 @@ static void load_builtin_functions(void)
 				if (expr_vec[i].GetType() == tok::FUNCTION && expr_vec[i].GetName() == s[3][0].GetName()) idxs.emplace_back(i);
 			}
 			cmn::value ret = 0;
+			cmn::value end = rpn::eval(s[1]);
+			cmn::value start = rpn::eval(s[0]);
 			std::cout << "{\n";
-			cmn::value step = s[2][0].GetValue();
-			if (step <= 0)
-			{
-				std::cerr << "Invalid input. Step must be greater than 0.\n";
-				return tok::OpToken(0);
-			}
-			for (double n = s[0][0].GetValue(); n < s[1][0].GetValue(); n+=step)
+			for (double n = start; (start > end) ? (n > end) : (n < end); n+=step)
 			{
 				auto expr_copy = expr_vec;
 				for (size_t idx : idxs)
