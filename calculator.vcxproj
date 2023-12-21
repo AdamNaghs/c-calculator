@@ -127,6 +127,7 @@
     <ClCompile Include="rpn.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="calculator.h" />
     <ClInclude Include="common.h" />
     <ClInclude Include="Function.h" />
     <ClInclude Include="Graph.h" />
