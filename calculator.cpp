@@ -20,11 +20,6 @@ int check_param_types(std::vector<std::vector<tok::OpToken>> vec, std::vector<to
 {
 	for (int i = 0; i < std::min(types.size(), vec.size()); i++)
 	{
-		if (vec[i].size() != 1)
-		{
-			//std::cerr << "Invalid input. Expected type " << types[i].GetType() << " at index " << i << ", not " << vec[i].GetType() << "\n";
-			return i;
-		}
 		if (vec[i][0].GetType() != types[i].GetType())
 		{
 			//std::cerr << "Invalid input. Expected type " << types[i].GetType() << " at index " << i << ", not " << vec[i].GetType() << "\n";
@@ -38,6 +33,7 @@ int check_param_types(std::vector<std::vector<tok::OpToken>> vec, std::vector<to
 
 void load_builtin_functions(void)
 {
+	static const cmn::value plot_step = 0.001;
 	func::add_builtin_func("pi", 0, [](std::vector<std::vector<tok::OpToken>> s)
 		{
 			return tok::OpToken(3.14159265359);
@@ -192,16 +188,17 @@ void load_builtin_functions(void)
 	// takes x-axist start & end, y-axis start & end, sole variable name, expression;
 	func::add_builtin_func("plot", 6, [](std::vector<std::vector<tok::OpToken>> s)
 		{
-			static const double step = 0.01;
+			static const double step = plot_step;
 			for (int i = 0; i < 4; i++)
 			{
+				bool error = false;
+				auto collapse = func::collapse_function(s[i], error);
 				rpn::sort(s[i]);
 				s[i][0] = tok::OpToken(rpn::eval(s[i]));
 			}
 			int tmp;
 			if (-1 != (tmp = check_param_types(s, { tok::val_token , tok::val_token, tok::val_token, tok::val_token }))) return s[tmp][0]; // not checking last two params because can be any type
 			check_first_param_type(s);
-			rpn::sort(s[2]);
 			std::vector<size_t> idxs;
 			std::vector<tok::OpToken> expr_vec = s[5];
 			std::vector<tok::OpToken> var_vec = s[4];
@@ -213,6 +210,7 @@ void load_builtin_functions(void)
 			cmn::value start = s[0][0].GetValue();
 			cmn::value end = s[1][0].GetValue();
 			std::vector<plot::Point> points;
+			if (rpn::debug)
 			std::cout << "{\n";
 			#pragma omp parallel for
 			for (double n = start; (start > end) ? (n > end) : (n < end); n += (start > end) ? (-step) : (step))
@@ -231,18 +229,69 @@ void load_builtin_functions(void)
 				rpn::sort(collapse);
 				ret = rpn::eval(collapse);
 				points.emplace_back(plot::Point(n, ret));
+				if (rpn::debug)
 				std::cout << "(x:" << n << ", y:" << ret << "),\n";
 			}
+			if (rpn::debug)
 			std::cout << "\b}\n";
-			plot::Graph g(0, 0, 1000, 1000, (int)start, (int)end, (int)s[2][0].GetValue(), (int)s[3][0].GetValue());
+			plot::Graph g(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT, (int)start, (int)end, (int)s[2][0].GetValue(), (int)s[3][0].GetValue());
 			g.add_point(points);
-			std::string name = "sum(";
+			std::string name = "plot(";
 			for (auto& v : s)
 			{
 				name.append(tok::vectostr(v) + ",");
 			}
 			name.append("\b)");
 			calc.plot(g, name);
+			return tok::OpToken(ret);
+		});
+	func::add_builtin_func("plot_add", 2, [](std::vector<std::vector<tok::OpToken>> s)
+		{
+			static const double step = plot_step;
+			std::vector<size_t> idxs;
+			std::vector<tok::OpToken> expr_vec = s[1];
+			std::vector<tok::OpToken> var_vec = s[0];
+			for (int i = 0; i < expr_vec.size(); i++)
+			{
+				if (expr_vec[i].GetType() == tok::FUNCTION && expr_vec[i].GetName() == var_vec[0].GetName()) idxs.emplace_back(i);
+			}
+			cmn::value ret = 0;
+			auto pair = calc.get_x_axis();
+			cmn::value start = pair.first;
+			cmn::value end = pair.second;
+			std::vector<plot::Point> points;
+			if (rpn::debug)
+			std::cout << "{\n";
+#pragma omp parallel for
+			for (cmn::value n = start; (start > end) ? (n > end) : (n < end); n += (start > end) ? (-step) : (step))
+			{
+				auto expr_copy = expr_vec;
+				for (size_t idx : idxs)
+				{
+					expr_copy[idx] = tok::OpToken((cmn::value)n);
+				}
+				bool error = false;
+				auto collapse = func::collapse_function(expr_copy, error);
+				if (error)
+				{
+					return tok::OpToken(0);
+				}
+				rpn::sort(collapse);
+				ret = rpn::eval(collapse);
+				points.emplace_back(plot::Point(n, ret));
+				if (rpn::debug)
+				std::cout << "(x:" << n << ", y:" << ret << "),\n";
+			}
+			if (rpn::debug)
+			std::cout << "\b}\n";
+
+			calc.add_point(points);
+			std::string name = "plot_add(";
+			for (auto& v : s)
+			{
+				name.append(tok::vectostr(v) + ",");
+			}
+			name.append("\b)");
 			return tok::OpToken(ret);
 		});
 	// takes range begin, end, step, sole variable name, expression;
@@ -294,6 +343,7 @@ void load_builtin_functions(void)
 int main(void)
 {
 	load_builtin_functions();
+	calc.parse_expr("plot(-1 * pi,pi,-1,1,n,cos(n))");
 	calc.parse_expr("list(0,5,x,cos(x))");
 	calc.parse_expr("e");
 	calc.parse_expr("pi");

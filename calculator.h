@@ -12,6 +12,7 @@
 #include <raylib.h>
 #include <chrono>
 #include <future>
+#include <map>
 
 #define LAST_VALUE "!"
 #define WINDOW_WIDTH 1000
@@ -222,6 +223,41 @@ public:
 		EndDrawing();
 	}
 
+	bool is_plotting()
+	{
+		return window_open;
+	}
+
+	std::pair<int, int> get_graph_size()
+	{
+		return std::make_pair(internal_graph.get_width(), internal_graph.get_height());
+	}
+
+	std::pair<int, int> get_x_axis()
+	{
+		return std::make_pair(internal_graph.get_x_start(), internal_graph.get_x_end());
+	}
+
+	std::pair<int, int> get_y_axis()
+	{
+		return std::make_pair(internal_graph.get_y_start(), internal_graph.get_y_end());
+	}
+
+	void add_point(int x, int y)
+	{
+		internal_graph.add_point(x, y);
+	}
+
+	void add_point(plot::Point p)
+	{
+		internal_graph.add_point(p);
+	}
+
+	void add_point(std::vector<plot::Point> v)
+	{
+		internal_graph.add_point(v);
+	}
+
 private:
 	bool window_open = false;
 
@@ -229,6 +265,46 @@ private:
 
 	std::string internal_graph_name;
 
+	const std::map<std::string, Color> color_map = {
+	{"lightgray", LIGHTGRAY},
+	{"gray", GRAY},
+	{"darkgray", DARKGRAY},
+	{"yellow", YELLOW},
+	{"gold", GOLD},
+	{"orange", ORANGE},
+	{"pink", PINK},
+	{"red", RED},
+	{"maroon", MAROON},
+	{"green", GREEN},
+	{"lime", LIME},
+	{"darkgreen", DARKGREEN},
+	{"skyblue", SKYBLUE},
+	{"blue", BLUE},
+	{"darkblue", DARKBLUE},
+	{"purple", PURPLE},
+	{"violet", VIOLET},
+	{"darkpurple", DARKPURPLE},
+	{"beige", BEIGE},
+	{"brown", BROWN},
+	{"darkbrown", DARKBROWN},
+	{"white", WHITE},
+	{"black", BLACK},
+	{"blank", BLANK},
+	{"magenta", MAGENTA},
+	{"raywhite", RAYWHITE}
+	// Add more colors if raylib updates
+	};
+
+	Color get_color(std::string input)
+	{
+		auto it = color_map.find(input);
+		if (it != color_map.end()) {
+			return it->second;
+		}
+		else {
+			return BLACK;
+		}
+	}
 
 	void handle_input(std::string input)
 	{
@@ -257,6 +333,28 @@ private:
 		{
 			rpn::debug = !rpn::debug;
 			std::cout << "Debug mode " << (rpn::debug ? "enabled" : "disabled") << "\n";
+			return;
+		}
+		else if (input.find("setfg ") == 0)
+		{
+			input.erase(input.begin(), input.begin() + 6);
+			Color color = get_color(input);
+			internal_graph.set_fgcolor(color);
+			return;
+		}
+		else if (input.find("setbg ") == 0)
+		{
+			input.erase(input.begin(), input.begin() + 6);
+			Color color = get_color(input);
+			internal_graph.set_bgcolor(color);
+			return;
+		}
+		else if (input == "colors")
+		{
+			for (auto it = color_map.begin(); it != color_map.end(); it++)
+			{
+				std::cout << it->first << "\n";
+			}
 			return;
 		}
 		parse_expr(input);

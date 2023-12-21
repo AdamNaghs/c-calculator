@@ -66,6 +66,12 @@ namespace plot
 			}
 		}
 
+		void clear_points()
+		{
+			points.clear();
+			normalized_points.clear();
+		}
+
 		Point normalize_point(Point p)
 		{
 			return Point((p.x - x_axis.start) / (x_axis.end - x_axis.start), (p.y - y_axis.start) / (y_axis.end - y_axis.start));
@@ -150,6 +156,26 @@ namespace plot
 		int get_y()
 		{
 			return loc.y;
+		}
+
+		int get_x_start()
+		{
+			return x_axis.start;
+		}
+
+		int get_x_end()
+		{
+			return x_axis.end;
+		}
+
+		int get_y_start()
+		{
+			return y_axis.start;
+		}
+
+		int get_y_end()
+		{
+			return y_axis.end;
 		}
 
 	private:
