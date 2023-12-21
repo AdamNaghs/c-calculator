@@ -217,44 +217,38 @@ void input_loop()
 	}
 }
 
-#define check_params(vec, num, func_name) if (vec.size() != num) { std::cerr << "Wrong number of params in '" << func_name << "' Expected:" << num << ",Actual:" << vec.size() << "\n"; return tok::OpToken(0); }
 #define check_first_param_type(vec) if (vec[0][0].GetType() == tok::FUNCTION && func::table.find(vec[0][0].GetName()) == func::table.end()) {return vec[0][0];}
 static void load_builtin_functions(void)
 {
 	func::add_builtin_func("pi", 0, [](std::vector<std::vector<tok::OpToken>> s)
 		{
-			check_params(s, 0, "pi");
 			return tok::OpToken(3.14159265359);
 		});
 	func::add_builtin_func("e", 0, [](std::vector<std::vector<tok::OpToken>> s)
 		{
-			check_params(s, 0, "e");
 			return tok::OpToken(2.718281828459045);
 		});
 	func::add_builtin_func("cos", 1, [](std::vector<std::vector<tok::OpToken>> s)
 		{
-			check_params(s, 1, "cos");
 			check_first_param_type(s);
 			rpn::sort(s[0]);
 			return tok::OpToken((cmn::value)std::cos(rpn::eval(s[0])));
 		});
 	func::add_builtin_func("sin", 1, [](std::vector<std::vector<tok::OpToken>> s)
 		{
-			check_params(s, 1, "sin");
 			check_first_param_type(s);
 			rpn::sort(s[0]);
 			return tok::OpToken((cmn::value)std::sin(rpn::eval(s[0])));
 		});
 	func::add_builtin_func("tan", 1, [](std::vector<std::vector<tok::OpToken>> s)
 		{
-			check_params(s, 1, "tan");
 			check_first_param_type(s);
 			rpn::sort(s[0]);
 			return tok::OpToken((cmn::value)std::tan(rpn::eval(s[0])));
 		});
 	func::add_builtin_func("log", 2, [](std::vector<std::vector<tok::OpToken>> s)
 		{
-			check_params(s, 2, "log");
+			check_first_param_type(s);
 			rpn::sort(s[0]);
 			rpn::sort(s[1]);
 			if (s[2][0].GetType() == tok::FUNCTION && func::table.find(s[2][0].GetName()) == func::table.end())return s[2][0];
@@ -262,14 +256,12 @@ static void load_builtin_functions(void)
 		});
 	func::add_builtin_func("ln", 1, [](std::vector<std::vector<tok::OpToken>> s)
 		{
-			check_params(s, 1, "ln");
 			check_first_param_type(s);
 			rpn::sort(s[0]);
 			return tok::OpToken((cmn::value)log(rpn::eval(s[0])));
 		});
 	func::add_builtin_func("sqrt", 1, [](std::vector<std::vector<tok::OpToken>> s)
 		{
-			check_params(s, 1, "root");
 			check_first_param_type(s);
 			for (auto& v : s)
 			{
@@ -280,7 +272,6 @@ static void load_builtin_functions(void)
 		});
 	func::add_builtin_func("root", 2, [](std::vector<std::vector<tok::OpToken>> s)
 		{
-			check_params(s, 2, "root");
 			check_first_param_type(s);
 			for (auto& v : s)
 			{
@@ -292,7 +283,6 @@ static void load_builtin_functions(void)
 	// takes range begin, end, sole variable name, expression;
 	func::add_builtin_func("sum", 4, [](std::vector<std::vector<tok::OpToken>> s)
 		{
-			check_params(s, 4, "sum");
 			check_first_param_type(s);
 			s[0][0] = tok::OpToken(rpn::eval(s[0]));
 			s[1][0] = tok::OpToken(rpn::eval(s[1]));
@@ -321,7 +311,6 @@ static void load_builtin_functions(void)
 		});
 	func::add_builtin_func("list", 4, [](std::vector<std::vector<tok::OpToken>> s)
 		{
-			check_params(s, 4, "list");
 			check_first_param_type(s);
 			rpn::sort(s[0]);
 			rpn::sort(s[1]);

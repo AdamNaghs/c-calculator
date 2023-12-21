@@ -127,9 +127,15 @@ namespace rpn
 	cmn::value eval(const std::vector<tok::OpToken>& tokens) {
 		std::stack<cmn::value> operandStack;
 
-		for (const auto& token : tokens) {
+		for (const tok::OpToken& token : tokens) {
 			if (!token.IsOperator()) {
 				// Push number onto the stack
+				if (token.GetType() == tok::FUNCTION) 
+				{
+					// functions are handled by collapse_functions before evaluation
+					std::cerr << "Invalid input. Function '" << token.GetName() <<"' not defined.\n";
+					return 0;
+				}
 				operandStack.push(token.GetValue());
 			}
 			else {
@@ -171,16 +177,6 @@ namespace rpn
 			return 0;
 		}
 		return operandStack.top();
-	}
-
-	void eval(const std::vector<std::vector<tok::OpToken>>& unsorted)
-	{
-		for (std::vector<tok::OpToken> v : unsorted)
-		{
-			sort(v);
-			eval(v);
-		}
-
 	}
 
 }

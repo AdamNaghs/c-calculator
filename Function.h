@@ -50,7 +50,7 @@ namespace func {
 				tok::OpToken ret = builtin.func(v);
 				return ret;
 			}
-			std::cerr << "Invalid input. Expected param count " << builtin.num_params << ", not " << v.size() << "\n";
+			std::cerr << "Invalid input. Function '" << name << "' expected param count " << builtin.num_params << ", not " << v.size() << "\n";
 			return tok::OpToken(0);
 
 		}

@@ -111,7 +111,7 @@ namespace func {
 		{
 			if (funcIt->second.builtin.num_params + funcIt->second.GetParams().size())
 			{
-				std::cerr << "Invalid input. Expected param count " << funcIt->second.GetParams().size() + funcIt->second.builtin.num_params << ", not 0\n";
+				std::cerr << "Invalid input. Function '" << funcIt->second.GetName() << "' expected param count " << funcIt->second.GetParams().size() + funcIt->second.builtin.num_params << ", not 0\n";
 				return INVALID_INPUT;
 			}
 			return FAILURE;
@@ -137,7 +137,7 @@ namespace func {
 		std::vector<std::vector<tok::OpToken>> arguments = split_args(argTokens);
 		if (arguments.size() != (funcIt->second.GetParams().size() + funcIt->second.builtin.num_params))
 		{
-			std::cerr << "Invalid input. Expected param count " << funcIt->second.GetParams().size() + funcIt->second.builtin.num_params << ", not " << arguments.size() << "\n";
+			std::cerr << "Invalid input. Function '" << funcIt->second.GetName() << "' expected param count " << funcIt->second.GetParams().size() + funcIt->second.builtin.num_params << ", not " << arguments.size() << "\n";
 			return INVALID_INPUT;
 		}
 		bool error = false;

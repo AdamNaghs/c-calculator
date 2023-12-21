@@ -3,7 +3,6 @@
 namespace cmn
 {
 
-
     int getPrecedence(enum op o)
     {
         switch (o)
