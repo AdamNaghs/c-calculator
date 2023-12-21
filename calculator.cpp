@@ -284,13 +284,9 @@ static void load_builtin_functions(void)
 		});
 	func::add_builtin_func("sqrt", 1, [](std::vector<std::vector<tok::OpToken>> s)
 		{
+			rpn::sort(s[0]);
 			if (!check_param_types(s, { tok::val_token })) return tok::OpToken(0);
 			check_first_param_type(s);
-			for (auto& v : s)
-			{
-				rpn::sort(v);
-				v[0] = tok::OpToken(rpn::eval(v));
-			}
 			return tok::OpToken(powl(s[0][0].GetValue(), (double)1 / (double)2));
 		});
 	func::add_builtin_func("fact", 1, [](std::vector<std::vector<tok::OpToken>> s)
