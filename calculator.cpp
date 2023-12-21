@@ -13,7 +13,10 @@
 #include "Graph.h"
 #include "calculator.h"
 
+#define PLOT_STEP 0.0075
+
 Calculator calc;
+
 
 	// should sort before running to remove parenthesis
 int check_param_types(std::vector<std::vector<tok::OpToken>> vec, std::vector<tok::OpToken> types)
@@ -33,7 +36,7 @@ int check_param_types(std::vector<std::vector<tok::OpToken>> vec, std::vector<to
 
 void load_builtin_functions(void)
 {
-	static const cmn::value plot_step = 0.001;
+	static const cmn::value plot_step = PLOT_STEP;
 	func::add_builtin_func("pi", 0, [](std::vector<std::vector<tok::OpToken>> s)
 		{
 			return tok::OpToken(3.14159265359);

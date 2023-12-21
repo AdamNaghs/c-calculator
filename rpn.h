@@ -7,7 +7,6 @@
 
 namespace rpn {
 
-
 	extern bool debug;
 
 	void sort(std::vector<tok::OpToken>& v);

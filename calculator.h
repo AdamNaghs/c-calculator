@@ -15,8 +15,8 @@
 #include <map>
 
 #define LAST_VALUE "!"
-#define WINDOW_WIDTH 1000
-#define WINDOW_HEIGHT 1000
+#define WINDOW_WIDTH 1500
+#define WINDOW_HEIGHT 1500
 
 class Calculator
 {

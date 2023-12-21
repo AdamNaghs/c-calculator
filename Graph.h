@@ -7,13 +7,12 @@
 
 namespace plot
 {
-
 	class Point
 	{
 	public:
 		double x, y;
 		Point(double x, double y) : x(x), y(y) {}
-		~Point() {}
+		//~Point() {}
 		friend std::ostream& operator<<(std::ostream& os, const Point& p)
 		{
 			os << "(" << p.x << ", " << p.y << ")";
@@ -38,18 +37,19 @@ namespace plot
 			y_axis.end = y_end;
 			bgcolor = BLACK;
 			fgcolor = GREEN;
+			//points.reserve(abs(x_start) + abs(x_end) + abs(y_start) + abs(y_end));
 		}
 		Graph(){}
 		~Graph()
 		{
 			points.clear();
-			normalized_points.clear();
+			//normalized_points.clear();
 		}
 
 		void add_point(Point p)
 		{
 			points.push_back(p);
-			normalized_points.push_back(normalize_point(p));
+			//normalized_points.push_back(normalize_point(p));
 		}
 
 		void add_point(double x, double y)
@@ -69,7 +69,7 @@ namespace plot
 		void clear_points()
 		{
 			points.clear();
-			normalized_points.clear();
+			//normalized_points.clear();
 		}
 
 		Point normalize_point(Point p)
@@ -77,15 +77,15 @@ namespace plot
 			return Point((p.x - x_axis.start) / (x_axis.end - x_axis.start), (p.y - y_axis.start) / (y_axis.end - y_axis.start));
 		}
 
-		std::vector<Point> normalize_points()
-		{
-			std::vector<Point> normalizedPoints;
-			for (int i = 0; i < points.size(); i++)
-			{
-				normalizedPoints.push_back(normalize_point(points[i]));
-			}
-			return normalizedPoints;
-		}
+		//std::vector<Point> normalize_points()
+		//{
+		//	std::vector<Point> normalizedPoints;
+		//	for (int i = 0; i < points.size(); i++)
+		//	{
+		//		normalizedPoints.push_back(normalize_point(points[i]));
+		//	}
+		//	return normalizedPoints;
+		//}
 
 		void draw_axis()
 		{
@@ -109,8 +109,9 @@ namespace plot
 
 		void plot()
 		{
-			for (Point p : normalized_points)
+			for (Point point : points)
 			{
+				Point p = normalize_point(point);
 				double inverted_y = 1.0 - p.y;
 				int x = loc.x + p.x * dim.width;
 				int y = loc.y + inverted_y * dim.height;
@@ -133,10 +134,10 @@ namespace plot
 			return points;
 		}
 
-		std::vector<Point> get_normalized_points()
-		{
-			return normalized_points;
-		}
+		//std::vector<Point> get_normalized_points()
+		//{
+		//	return normalized_points;
+		//}
 
 		int get_width()
 		{
@@ -192,7 +193,7 @@ namespace plot
 			int start, end;
 		} x_axis, y_axis;
 		std::vector<Point> points;
-		std::vector<Point> normalized_points;
+		//std::vector<Point> normalized_points;
 		Color bgcolor;
 		Color fgcolor;
 
