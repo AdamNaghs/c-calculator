@@ -164,6 +164,7 @@ void input_loop()
 		else if (input == "debug")
 		{
 			rpn::debug = !rpn::debug;
+			std::cout << "Debug mode " << (rpn::debug ? "enabled" : "disabled") << "\n";
 			continue;
 		}
 		parse_expr(input);
