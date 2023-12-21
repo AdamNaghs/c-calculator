@@ -112,11 +112,12 @@ void parse_expr(std::string input)
 			// init function with params
 			// must only be param_names
 			std::vector<tok::OpToken> param_vec(tok_vec.begin() + found_param_start + 1, tok_vec.begin() + found_param_end);
-			param_vec.erase(std::remove_if(param_vec.begin() + 1, param_vec.end(),
-				[](tok::OpToken token) {
-					cmn::op tmp = token.GetOperator();
-					return token.IsOperator() && tmp && (tmp == cmn::op::COMMA);}),
-				param_vec.end());
+			if (!param_vec.empty())
+				param_vec.erase(std::remove_if(param_vec.begin() + 1, param_vec.end(),
+					[](tok::OpToken token) {
+						cmn::op tmp = token.GetOperator();
+						return token.IsOperator() && tmp && (tmp == cmn::op::COMMA);}),
+					param_vec.end());
 			tok::OpToken func = tok_vec.at(0);
 			std::cout << "Input: " << tok::vectostr(tok_vec) << "\nParams:" << tok::vectostr(param_vec) << "\nExpr:" << tok::vectostr(expr_vec) << "\n\n";
 			for (tok::OpToken param : param_vec)
@@ -405,6 +406,8 @@ static void load_builtin_functions(void)
 int main(void)
 {
 	load_builtin_functions();
+	parse_expr("v() = 7");
+	parse_expr("v");
 	parse_expr("f(x) = x^fact(x) / fact(x)");
 	parse_expr("step(0,8,0.1,n,f(n))");
 	parse_expr("step(0,8,.1,n,f(n))");
@@ -441,6 +444,7 @@ int main(void)
 	parse_expr("c((s) = 1");
 	parse_expr("c((s");
 	parse_expr("c))");
+
 	input_loop();
 
 	//func::dump_table();

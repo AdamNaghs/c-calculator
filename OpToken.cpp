@@ -14,7 +14,7 @@ std::ostream& operator<<(std::ostream& os, OpToken& token) {
         os << tmp << "Value:'";
         break;
     case TokenType::FUNCTION:
-        os << tmp << "Variable:'";
+        os << tmp << "Func/Var:'";
         break;
     default:
         os << "Error Converting Token to Stream.";
