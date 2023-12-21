@@ -74,6 +74,7 @@ namespace func {
 		INVALID_INPUT = -2,
 	};
 
+
 	extern std::map<std::string, Function> table;
 
 	void dump_table(void);
