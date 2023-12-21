@@ -1,7 +1,7 @@
 #pragma once
 
 #include <iostream>
-#include <set>
+#include <map>
 #include <cmath>
 #include <raylib.h>
 
@@ -55,7 +55,7 @@ namespace plot
 		void add_point(Point p)
 		{
 			if (invalid_point(p)) return;
-			points.insert(p);
+			points.insert(std::make_pair<>(p,fgcolor));
 			//normalized_points.push_back(normalize_point(p));
 		}
 
@@ -156,11 +156,11 @@ namespace plot
 			#pragma omp parallel for
 			for (auto point : points)
 			{
-				Point p = normalize_point(point);
+				Point p = normalize_point(point.first);
 				double inverted_y = 1.0 - p.y;
 				int x = loc.x + p.x * dim.width;
 				int y = loc.y + inverted_y * dim.height;
-				DrawCircle(x, y, 2, fgcolor);
+				DrawCircle(x, y, 2, point.second);
 			}
 		}
 
@@ -174,7 +174,7 @@ namespace plot
 			this->fgcolor = color;
 		}
 
-		std::set<Point> get_points()
+		std::map<Point,Color> get_points()
 		{
 			return points;
 		}
@@ -266,7 +266,7 @@ namespace plot
 		{
 			int start, end;
 		} x_axis, y_axis;
-		std::set<Point> points;
+		std::map<Point,Color> points;
 		//std::vector<Point> normalized_points;
 		Color bgcolor;
 		Color fgcolor;
