@@ -385,7 +385,7 @@ static void load_builtin_functions(void)
 			cmn::value end = rpn::eval(s[1]);
 			cmn::value start = rpn::eval(s[0]);
 			std::cout << "{\n";
-			for (double n = start; (start > end) ? (n > end) : (n < end); n+=step)
+			for (double n = start; (start > end) ? (n > end) : (n < end); n += (start > end) ? (-step) : (step))
 			{
 				auto expr_copy = expr_vec;
 				for (size_t idx : idxs)
