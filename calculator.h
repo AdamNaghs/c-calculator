@@ -290,7 +290,7 @@ public:
 		internal_graph = graph;
 		internal_graph_name = name;
 		BeginDrawing();
-		ClearBackground(WHITE);
+		ClearBackground(internal_graph.get_bgcolor());
 		internal_graph.draw();
 		// Draw points
 		EndDrawing();
@@ -299,6 +299,16 @@ public:
 	bool is_plotting()
 	{
 		return window_open;
+	}
+
+	void draw()
+	{
+		if (!window_open) start_window();
+		BeginDrawing();
+		ClearBackground(internal_graph.get_bgcolor());
+		internal_graph.draw();
+		// Draw points
+		EndDrawing();
 	}
 
 	std::pair<int, int> get_graph_size()
@@ -335,6 +345,15 @@ public:
 	void set_threshold(double threshold)
 	{
 		this->threshold = threshold;
+	}
+
+	double get_threshold()
+	{
+		return threshold;
+	}
+	std::pair<double,double> get_precision()
+	{
+		return std::make_pair(internal_graph.precision_x(), internal_graph.precision_y());
 	}
 private:
 	double threshold = 0.1;
@@ -389,7 +408,7 @@ private:
 	unsigned long print_map_capacity(const std::map<plot::Point, Color>& map) {
 		unsigned long cap = sizeof(map);
 		for (auto it = map.begin(); it != map.end(); ++it) {
-			cap += sizeof(std::pair<plot::Point, Color>);
+			cap += sizeof(it);
 		}
 		double sizeInMB = static_cast<double>(cap) / (1024 * 1024);
 		double sizeInGB = sizeInMB / 1024;
@@ -485,14 +504,19 @@ private:
 			internal_graph.clear_points();
 			return;
 		}
-		else if (input == "clear")
-		{
-			internal_graph.clear_points();
-			return;
-		}
 		else if (input == "mem")
 		{
 			print_map_capacity(internal_graph.get_points());
+			return;
+		}
+		else if (input == "remake")
+		{
+			internal_graph.remake();
+			return;
+		}
+		else if (input == "clean")
+		{
+			internal_graph.clean();
 			return;
 		}
 		else if (input == "help")
@@ -509,6 +533,7 @@ private:
 			std::cout << "setaxis <color> - set the axis color\n";
 			std::cout << "colors - print the available colors\n";
 			std::cout << "clear - clear the graph\n";
+			std::cout << "remake - reinitilizes the graph to potentially free space\n";
 			std::cout << "mem - print the approximate memory usage of the graph\n";
 			std::cout << "help - print this help message\n";
 			return;
@@ -546,6 +571,8 @@ private:
 		plot(internal_graph, internal_graph_name);
 
 	}
+
+
 
 
 };

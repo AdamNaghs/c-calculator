@@ -7,12 +7,14 @@
 
 namespace plot
 {
+#define POINT_SIZE 2
 	class Point
 	{
 	public:
 		double x, y;
+		Point() : x(0), y(0) {}
 		Point(double x, double y) : x(x), y(y) {}
-		//~Point() {}
+		~Point() {}
 		friend std::ostream& operator<<(std::ostream& os, const Point& p)
 		{
 			os << "(" << p.x << ", " << p.y << ")";
@@ -21,6 +23,10 @@ namespace plot
 		bool operator<(const Point& other) const {
 			if (x != other.x) return x < other.x;
 			return y < other.y;
+		}
+
+		bool operator==(const Point& other) const {
+			return (x == other.x && y == other.y);
 		}
 	};
 
@@ -55,7 +61,7 @@ namespace plot
 		void add_point(Point p)
 		{
 			if (invalid_point(p)) return;
-			points.insert(std::make_pair<>(p,fgcolor));
+			points.insert( std::make_pair<>(p, fgcolor));
 			//normalized_points.push_back(normalize_point(p));
 		}
 
@@ -78,6 +84,16 @@ namespace plot
 		{
 			points.clear();
 			//normalized_points.clear();
+		}
+
+		void remake()
+		{
+			auto tmp = points;
+			clear_points();
+			for (auto point : tmp)
+			{
+				add_point(point.first);
+			}
 		}
 
 		Point normalize_point(Point p)
@@ -154,13 +170,13 @@ namespace plot
 		void plot()
 		{
 			#pragma omp parallel for
-			for (auto point : points)
+			for (auto& point : points)
 			{
 				Point p = normalize_point(point.first);
 				double inverted_y = 1.0 - p.y;
 				int x = loc.x + p.x * dim.width;
 				int y = loc.y + inverted_y * dim.height;
-				DrawCircle(x, y, 2, point.second);
+				DrawCircle(x, y, POINT_SIZE, point.second);
 			}
 		}
 
@@ -174,7 +190,7 @@ namespace plot
 			this->fgcolor = color;
 		}
 
-		std::map<Point,Color> get_points()
+		std::map<plot::Point, Color> get_points()
 		{
 			return points;
 		}
@@ -233,6 +249,46 @@ namespace plot
 			this->axiscolor = color;
 		}
 
+		void clean()
+		{
+			// remove points that are too close together
+			for (auto& point = points.begin(); point != points.end();)
+			{
+				for (auto& other_point = points.begin(); point != points.end();)
+				{
+					if (point == other_point) continue;
+					if (distanceBetweenPoints(point->first, other_point->first) < 0.001)
+					{
+						points.erase(point++);
+					}
+				}
+			
+			}
+		}
+
+
+	double precision_x() const {
+		double x_range = x_axis.end - x_axis.start;
+		double pixelsPerUnitX = static_cast<double>(dim.width) / x_range;
+		return 1.0 / pixelsPerUnitX;
+	}
+
+	double precision_y() const {
+		double y_range = y_axis.end - y_axis.start;
+		double pixelsPerUnitY = static_cast<double>(dim.height) / y_range;
+		return 1.0 / pixelsPerUnitY;
+	}
+
+	Color get_bgcolor()
+	{
+		return bgcolor;
+	}
+
+Color get_fgcolor()
+	{
+		return fgcolor;
+	}
+
 
 	private:
 		double distanceBetweenPoints(const Point& a, const Point& b) {
@@ -266,7 +322,7 @@ namespace plot
 		{
 			int start, end;
 		} x_axis, y_axis;
-		std::map<Point,Color> points;
+		std::map<plot::Point, Color> points;
 		//std::vector<Point> normalized_points;
 		Color bgcolor;
 		Color fgcolor;

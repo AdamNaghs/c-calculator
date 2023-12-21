@@ -17,7 +17,6 @@
 Calculator calc;
 
 
-
 static cmn::value get_precision(cmn::value range_start, cmn::value range_end)
 {
 	cmn::value range_size = abs(range_start) + abs(range_end);
@@ -225,8 +224,16 @@ void load_builtin_functions(void)
 			cmn::value ret = 0;
 			cmn::value start = s[0][0].GetValue();
 			cmn::value end = s[1][0].GetValue();
-			static const double step = get_precision(start,end);
-			std::vector<plot::Point> points;
+			plot::Graph g(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT, (int)start, (int)end, (int)s[2][0].GetValue(), (int)s[3][0].GetValue());
+			std::string name = "plot(";
+			for (auto& v : s)
+			{
+				name.append(tok::vectostr(v) + ",");
+			}
+			name.append("\b)");
+			calc.plot(g, name);
+			double step = g.precision_x();
+			calc.set_threshold(step);
 			if (rpn::debug)
 			std::cout << "{\n";
 			#pragma omp parallel for
@@ -237,10 +244,6 @@ void load_builtin_functions(void)
 				{
 					expr_copy[idx] = tok::OpToken((cmn::value)n);
 				}
-				if (n > 3)
-				{
-
-				}
 				bool error = false;
 				auto collapse = func::collapse_function(expr_copy, error);
 				if (error)
@@ -249,23 +252,14 @@ void load_builtin_functions(void)
 				}
 				rpn::sort(collapse);
 				ret = rpn::eval(collapse);
-				points.emplace_back(plot::Point(n, ret));
+				calc.add_point(plot::Point(n, ret));
 				if (rpn::debug)
 				std::cout << "(x:" << n << ", y:" << ret << "),\n";
 			}
 			if (rpn::debug)
 			std::cout << "\b}\n";
-			plot::Graph g(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT, (int)start, (int)end, (int)s[2][0].GetValue(), (int)s[3][0].GetValue());
-			calc.set_threshold(step);
-			g.add_point(points);
-			std::string name = "plot(";
-			for (auto& v : s)
-			{
-				name.append(tok::vectostr(v) + ",");
-			}
-			name.append("\b)");
-			calc.plot(g, name);
 			auto end_time = std::chrono::high_resolution_clock::now();
+			calc.draw();
 			std::chrono::duration<double, std::milli> duration = end_time - start_time;
 			std::cout << "Plot took " << duration.count() << "ms\n";
 			return tok::OpToken(ret);
@@ -284,8 +278,13 @@ void load_builtin_functions(void)
 			auto pair = calc.get_x_axis();
 			cmn::value start = pair.first;
 			cmn::value end = pair.second;
-			static const double step = get_precision(start, end);
-			std::vector<plot::Point> points;
+			double step = calc.get_precision().first;
+			std::string name = "plot_add(";
+			for (auto& v : s)
+			{
+				name.append(tok::vectostr(v) + ",");
+			}
+			name.append("\b)");
 			if (rpn::debug)
 			std::cout << "{\n";
 #pragma omp parallel for
@@ -307,7 +306,6 @@ void load_builtin_functions(void)
 						ran = true;
 						break;
 					}
-
 				}
 				if (error)
 				{
@@ -316,20 +314,13 @@ void load_builtin_functions(void)
 				if (!ran) collapse = expr_copy;
 				rpn::sort(collapse);
 				ret = rpn::eval(collapse);
-				points.emplace_back(plot::Point(n, ret));
 				if (rpn::debug)
 				std::cout << "(x:" << n << ", y:" << ret << "),\n";
+				calc.add_point(plot::Point(n, ret));
 			}
 			if (rpn::debug)
 			std::cout << "\b}\n";
 			calc.set_threshold(step);
-			calc.add_point(points);
-			std::string name = "plot_add(";
-			for (auto& v : s)
-			{
-				name.append(tok::vectostr(v) + ",");
-			}
-			name.append("\b)");
 			auto end_time = std::chrono::high_resolution_clock::now();
 			std::chrono::duration<double, std::milli> duration = end_time - start_time;
 			std::cout << "Plot took " << duration.count() << "ms\n";
