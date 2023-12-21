@@ -296,6 +296,16 @@ public:
 		EndDrawing();
 	}
 
+	plot::Graph get_graph()
+	{
+		return internal_graph;
+	}
+
+	void add_line(plot::LineSegment line)
+	{
+		internal_graph.add_line(line);
+	}
+
 	bool is_plotting()
 	{
 		return window_open;
@@ -324,22 +334,6 @@ public:
 	std::pair<int, int> get_y_axis()
 	{
 		return std::make_pair(internal_graph.get_y_start(), internal_graph.get_y_end());
-	}
-
-	void add_point(int x, int y)
-	{
-		internal_graph.add_point(x, y);
-	}
-
-	void add_point(plot::Point p)
-	{
-		internal_graph.add_point(p);
-	}
-
-	void add_point(std::vector<plot::Point> v)
-	{
-		internal_graph.add_point(v);
-		update_graph();
 	}
 
 	void set_threshold(double threshold)
@@ -509,16 +503,6 @@ private:
 			print_map_capacity(internal_graph.get_points());
 			return;
 		}
-		else if (input == "remake")
-		{
-			internal_graph.remake();
-			return;
-		}
-		else if (input == "clean")
-		{
-			internal_graph.clean();
-			return;
-		}
 		else if (input == "help")
 		{
 			std::cout << "Commands:\n";
@@ -533,7 +517,6 @@ private:
 			std::cout << "setaxis <color> - set the axis color\n";
 			std::cout << "colors - print the available colors\n";
 			std::cout << "clear - clear the graph\n";
-			std::cout << "remake - reinitilizes the graph to potentially free space\n";
 			std::cout << "mem - print the approximate memory usage of the graph\n";
 			std::cout << "help - print this help message\n";
 			return;
