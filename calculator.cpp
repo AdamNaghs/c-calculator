@@ -14,8 +14,9 @@
 #include "calculator.h"
 
 #define PLOT_STEP 0.0075
-
 Calculator calc;
+
+
 
 static cmn::value get_precision(cmn::value range_start, cmn::value range_end)
 {
