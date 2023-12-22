@@ -25,7 +25,7 @@
 #define WINDOW_WIDTH 1500
 #define WINDOW_HEIGHT 1500
 #define MAX_INPUT_CHARS 256
-#define TARGET_FPS 12
+#define TARGET_FPS 60
 
 void empty_func(void){}
 class Calculator
@@ -195,113 +195,291 @@ public:
 			std::cout << n << " = " << input << tmp << "\n";
 		}
 	}
+	// window and terminal input
 	std::string get_input(std::function<void()> optional_func = empty_func)
 	{
 		int cursor = 0;
 		std::string ret;
 		std::cout << "\nInput expression: ";
+		volatile int key;
 		if (window_open)
-		while(1)
-		{
-			if (_kbhit()) {
-				char ch = _getch();
-
-				if (ch == '\r') { // Enter key pressed
-					std::cout << "\n";
-					history.push_back(ret);
-					return ret;
-				}
-
-				if (ch == '\b') { // Backspace pressed
-					if (!ret.empty()) {
-						ret.pop_back();
-						std::cout << "\b \b" << std::flush; // Erase the last character on console
-					}
-					goto exit_loop;
-				}
-				else if (ch == -32) // Special keys (like arrow keys)
+			while (1)
+			{
+				if (_kbhit())
 				{
-					int arrow = _getch(); // Get the second character
-					std::string tmp(cursor, '\b'),tmp1(cursor,' ');
-					
-					switch (arrow)
+					char ch = _getch();
+
+					if (ch == '\r') // Enter key pressed
 					{
-					case 72: // Up arrow
-						future.push_back(ret);
-						if (!history.empty())
-						{
-							ret = history.back();
-							history.pop_back();
-							cursor = ret.size();
-							std::cout << tmp << tmp1 << tmp << ret << std::flush;
-						}
-						break;
-					case 80: // Down arrow
+						std::cout << "\n";
 						history.push_back(ret);
-						if (!future.empty())
-						{
-							ret = future.back();
-							future.pop_back();
-						}
-						else
-						{
-							ret = "";
-						}
-						cursor = ret.size();
-						std::cout << tmp << tmp1 << tmp << ret << std::flush;
-						break;
-					case 75: // Left arrow
-						if (cursor > 0)
-						{
-							std::cout << "\b" << std::flush;
-							cursor--;
-						}
-						break;
-					case 77: // Right arrow
-						if (cursor < ret.size())
-						{
-							std::cout << "\b" << std::flush;
-							cursor++;
-						}
-						break;
+						return ret;
 					}
-				} else if (ch >= 32 && ch <= 126) { // Printable characters
-					ret.push_back(ch);
-					std::cout << ch << std::flush; // Display the character
-					cursor++;
+
+					if (ch == '\b') // Backspace pressed
+					{
+						if (!ret.empty() && cursor > 0)
+						{
+							ret.erase(cursor - 1, 1);
+							cursor--;
+							// Redraw the entire line
+							std::cout << "\rInput expression: " << ret << ' ';
+							std::cout << "\rInput expression: " << std::string(ret.begin(), ret.begin() + cursor);
+						}
+					}
+					else if (ch == -32) // Special keys (like arrow keys)
+					{
+						int arrow = _getch(); // Get the second character
+
+						switch (arrow)
+						{
+						case 72: // Up arrow
+							if (!history.empty())
+							{
+								future.push_back(ret);
+								std::cout << std::string(MAX_INPUT_CHARS - ret.length(), ' ') << std::string(MAX_INPUT_CHARS - ret.length(), '\b'); // Clear the line
+								ret = history.back();
+								history.pop_back();
+								// Redraw the entire line
+								// Move cursor back to correct position
+								cursor = ret.size();
+								std::cout << "\rInput expression: " << std::string(ret.begin(), ret.end());
+							}
+							break;
+						case 80: // Down arrow
+							if (!future.empty())
+							{
+								history.push_back(ret);
+								std::cout << std::string(MAX_INPUT_CHARS - ret.length(), ' ') << std::string(MAX_INPUT_CHARS - ret.length(), '\b'); // Clear the line
+								ret = future.back();
+								future.pop_back();
+								cursor = ret.size(); // Set cursor to the end of the new string
+								std::cout << "\rInput expression: " << std::string(ret.begin(), ret.end());
+							}
+							else
+							{
+								ret.clear(); // Clear the current input if there's nothing in the future
+								cursor = 0;
+								std::cout << std::string(MAX_INPUT_CHARS - ret.length(), ' ') << std::string(MAX_INPUT_CHARS - ret.length(), '\b'); // Clear the line
+								std::cout << "\rInput expression: " << ret; // Print the new input
+							}
+							// Redraw the entire line with the new input
+							break;
+						case 75: // Left arrow
+							if (cursor > 0)
+							{
+								cursor--;
+								std::cout << "\b";
+							}
+							break;
+						case 77: // Right arrow
+							if (cursor < ret.size())
+							{
+								std::cout << ret[cursor];
+								cursor++;
+							}
+							break;
+						}
+					}
+					else if (ch >= 32 && ch <= 126) // Printable characters
+					{
+						ret.insert(cursor, 1, ch);
+						cursor++;
+						// Redraw the entire line
+						std::cout << "\rInput expression: " << ret;
+						// Move cursor back to correct position
+						std::cout << "\rInput expression: " << std::string(ret.begin(), ret.begin() + cursor);
+					}
 				}
+				key = GetCharPressed();
+				while (key > 0) {
+					if (key >= 32 && key <= 125 && ret.size() < MAX_INPUT_CHARS) {
+						ret.insert(cursor, 1, char(key));
+						cursor++;
+						// Redraw the entire line
+						std::cout << "\rInput expression: " << ret;
+						// Move cursor back to correct position
+						std::cout << "\rInput expression: " << std::string(ret.begin(), ret.begin() + cursor);
+					}
+					key = GetCharPressed();
+				}
+
+				// Handle special keys
+				if (IsKeyPressed(KEY_BACKSPACE)) {
+					if (!ret.empty() && cursor > 0)
+					{
+						ret.erase(cursor - 1, 1);
+						cursor--;
+						// Redraw the entire line
+						std::cout << "\rInput expression: " << ret << ' ';
+						std::cout << "\rInput expression: " << std::string(ret.begin(), ret.begin() + cursor);
+					}
+				}
+				else if (IsKeyPressed(KEY_ENTER)) {
+					history.push_back(ret);
+					std::cout << "\n";
+					return ret;  // Return the input when Enter is pressed
+
+				}
+				else if (IsKeyPressed(KEY_UP)) // Up arrow
+				{
+					if (!history.empty())
+					{
+						future.push_back(ret);
+						std::cout << "\rInput expression: " << std::string(ret.length(), ' ') << std::string(ret.length(), '\b'); // Clear the line
+						ret = history.back();
+						history.pop_back();
+						// Redraw the entire line
+						// Move cursor back to correct position
+						cursor = ret.size();
+						std::cout << "\rInput expression: " << std::string(ret.begin(), ret.end());
+					}
+				}
+				else if (IsKeyPressed(KEY_DOWN)) // Down arrow
+				{
+					if (!future.empty())
+					{
+						history.push_back(ret);
+						std::cout << std::string(MAX_INPUT_CHARS - ret.length(), ' ') << std::string(MAX_INPUT_CHARS - ret.length(), '\b'); // Clear the line
+						ret = future.back();
+						future.pop_back();
+						cursor = ret.size(); // Set cursor to the end of the new string
+						std::cout << "\rInput expression: " << std::string(ret.begin(), ret.end());
+					}
+					else
+					{
+						int tmp = cursor;
+						ret.clear(); // Clear the current input if there's nothing in the future
+						cursor = 0;
+						std::cout << std::string(MAX_INPUT_CHARS - ret.length(), ' ') << std::string(MAX_INPUT_CHARS - ret.length(), '\b'); // Clear the line
+						std::cout << "\rInput expression: " << ret << std::flush; // Print the new input
+					}
+					// Redraw the entire line with the new input
+
+				}
+				else if (IsKeyPressed(KEY_LEFT)) // Left arrow
+				{
+					if (cursor > 0)
+					{
+						cursor--;
+						std::cout << "\b";
+					}
+				}
+				else if (IsKeyPressed(KEY_RIGHT)) // Right arrow
+				{
+					if (cursor < ret.size())
+					{
+						std::cout << ret[cursor];
+						cursor++;
+					}
+				}
+				optional_func();
 			}
-			exit_loop:
-			optional_func(); // Update the graph if the window is open
-			//std::this_thread::sleep_for(std::chrono::milliseconds(50)); // Reduce CPU usage
-			// Only work on raylib windows
-			// Get char pressed (unicode character) on the queue
-			/*int key = GetCharPressed();*/
+		else
+		{
+			std::getline(std::cin, ret);
+			std::cout << "\n";
+		}
+		history.push_back(ret);
+		return ret;
+	}
 
-			// Check if more characters have been pressed on the same frame
-			//while (key > 0)
-			//{
-			//	// NOTE: Only allow keys in range [32..125]
-			//	if ((key >= 32) && (key <= 125) && (letterCount < MAX_INPUT_CHARS))
-			//	{
-			//		std::cout << char(key);
-			//		ret.push_back((char)key);
-			//		letterCount++;
-			//	}
-			//	key = GetCharPressed();  // Check next character in the queue
-			//}
+	std::string get_term_input(std::function<void()> optional_func = empty_func)
+	{
+		int cursor = 0;
+		std::string ret;
+		std::cout << "\nInput expression: ";
+		if (window_open)
+		{
+			while (1)
+			{
+				if (_kbhit())
+				{
+					char ch = _getch();
 
-			//if (IsKeyPressed(KEY_BACKSPACE))
-			//{
-			//	letterCount--;
-			//	if (letterCount < 0) letterCount = 0;
-			//	std::cout << "\b \b";
-			//	ret.pop_back();
-			//}
-			//else if (IsKeyPressed(KEY_ENTER))
-			//{
-			//	return ret;
-			//}
+					if (ch == '\r') // Enter key pressed
+					{
+						std::cout << "\n";
+						history.push_back(ret);
+						return ret;
+					}
+
+					if (ch == '\b') // Backspace pressed
+					{
+						if (!ret.empty() && cursor > 0)
+						{
+							ret.erase(cursor - 1, 1);
+							cursor--;
+							// Redraw the entire line
+							std::cout << "\rInput expression: " << ret << ' ';
+							std::cout << "\rInput expression: " << std::string(ret.begin(), ret.begin() + cursor);
+						}
+					}
+					else if (ch == -32) // Special keys (like arrow keys)
+					{
+						int arrow = _getch(); // Get the second character
+
+						switch (arrow)
+						{
+						case 72: // Up arrow
+							if (!history.empty())
+							{
+								future.push_back(ret);
+								std::cout << std::string(MAX_INPUT_CHARS - ret.length(), ' ') << std::string(MAX_INPUT_CHARS - ret.length(), '\b'); // Clear the line
+								ret = history.back();
+								history.pop_back();
+								// Redraw the entire line
+								// Move cursor back to correct position
+								cursor = ret.size();
+								std::cout << "\rInput expression: " << std::string(ret.begin(), ret.end());
+							}
+							break;
+						case 80: // Down arrow
+							if (!future.empty())
+							{
+								history.push_back(ret);
+								std::cout << std::string(MAX_INPUT_CHARS - ret.length(), ' ') << std::string(MAX_INPUT_CHARS - ret.length(), '\b'); // Clear the line
+								ret = future.back();
+								future.pop_back();
+								cursor = ret.size(); // Set cursor to the end of the new string
+								std::cout << "\rInput expression: " << std::string(ret.begin(), ret.end());
+							}
+							else
+							{
+								ret.clear(); // Clear the current input if there's nothing in the future
+								cursor = 0;
+								std::cout << "\rInput expression: " << ret; // Print the new input
+							}
+							// Redraw the entire line with the new input
+							break;
+						case 75: // Left arrow
+							if (cursor > 0)
+							{
+								cursor--;
+								std::cout << "\b";
+							}
+							break;
+						case 77: // Right arrow
+							if (cursor < ret.size())
+							{
+								std::cout << ret[cursor];
+								cursor++;
+							}
+							break;
+						}
+					}
+					else if (ch >= 32 && ch <= 126) // Printable characters
+					{
+						ret.insert(cursor, 1, ch);
+						cursor++;
+						// Redraw the entire line
+						std::cout << "\rInput expression: " << ret;
+						// Move cursor back to correct position
+						std::cout << "\rInput expression: " << std::string(ret.begin(), ret.begin() + cursor);
+					}
+				}
+				optional_func(); // Update the graph if the window is open
+			}
 		}
 		else
 		{
@@ -311,6 +489,7 @@ public:
 		history.push_back(ret);
 		return ret;
 	}
+
 	void input_loop()
 	{
 		//auto input_future = std::async(std::launch::async, [&]() {
@@ -627,9 +806,6 @@ private:
 		plot(internal_graph, internal_graph_name);
 
 	}
-
-
-
 
 };
 
