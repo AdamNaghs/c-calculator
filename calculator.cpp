@@ -62,6 +62,26 @@ void load_builtin_functions(void)
 			int tmp;
 			if (-1 != (tmp = check_param_types(s, { tok::val_token }))) return s[tmp][0];
 			return tok::OpToken((cmn::value)std::tan(rpn::eval(s[0])));
+		});	func::add_builtin_func("acos", 1, [](std::vector<std::vector<tok::OpToken>> s)
+		{
+			rpn::sort(s[0]);
+			int tmp;
+			if (-1 != (tmp = check_param_types(s, { tok::val_token }))) return s[tmp][0];
+			return tok::OpToken((cmn::value)std::acos(rpn::eval(s[0])));
+		});
+	func::add_builtin_func("asin", 1, [](std::vector<std::vector<tok::OpToken>> s)
+		{
+			rpn::sort(s[0]);
+			int tmp;
+			if (-1 != (tmp = check_param_types(s, { tok::val_token }))) return s[tmp][0];
+			return tok::OpToken((cmn::value)std::asin(rpn::eval(s[0])));
+		});
+	func::add_builtin_func("atan", 1, [](std::vector<std::vector<tok::OpToken>> s)
+		{
+			rpn::sort(s[0]);
+			int tmp;
+			if (-1 != (tmp = check_param_types(s, { tok::val_token }))) return s[tmp][0];
+			return tok::OpToken((cmn::value)std::atan(rpn::eval(s[0])));
 		});
 	func::add_builtin_func("log", 2, [](std::vector<std::vector<tok::OpToken>> s)
 		{
@@ -210,6 +230,8 @@ void load_builtin_functions(void)
 			cmn::value start = s[0][0].GetValue();
 			cmn::value end = s[1][0].GetValue();
 			plot::Graph g(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT, std::min((int)start, (int)end), std::max((int)start, (int)end), std::min((int)s[2][0].GetValue(), (int)s[3][0].GetValue()), std::max((int)s[2][0].GetValue(), (int)s[3][0].GetValue()));
+			if (calc.is_alternating())
+				g.set_fgcolor(calc.get_next_color());
 			std::string name = "plot(";
 			for (auto& v : s)
 			{
@@ -227,6 +249,7 @@ void load_builtin_functions(void)
 			// Set the threshold as a small percentage of the y-axis range
 			const double threshold = POINT_THRESHOLD * y_axis_range; // Example: 5% of the y-axis range
 
+			g.set_bgcolor(calc.get_bgcolor());
 			#pragma omp parallel for
 			for (double n = start; (start > end) ? (n > end) : (n < end); n += (start > end) ? (-step) : (step))
 			{
@@ -293,7 +316,9 @@ void load_builtin_functions(void)
 			{
 				std::cout << "{\n";
 			}
-#pragma omp parallel for
+			if (calc.is_alternating())
+				calc.set_fgcolor(calc.get_next_color());
+			#pragma omp parallel for
 			for (cmn::value n = start; (start > end) ? (n > end) : (n < end); n += (start > end) ? (-step) : (step))
 			{
 				auto expr_copy = expr_vec;
@@ -374,6 +399,8 @@ void load_builtin_functions(void)
 			{
 				std::cout << "{\n";
 			}
+			if (calc.is_alternating())
+				calc.set_fgcolor(calc.get_next_color());
 			#pragma omp parallel for
 			for (cmn::value n = start; (start > end) ? (n > end) : (n < end); n += (start > end) ? (-step) : (step))
 			{
@@ -528,7 +555,17 @@ int main(void)
 	calc.parse_expr("plot(-5,5,-5,5,n,cos(n))");
 	calc.parse_expr("plot_add(n,ln(n))");
 	calc.parse_expr("plot_add(n,sin(n))");
+	calc.parse_expr("plot_add(n,-1*sin(n))");	
+	calc.parse_expr("plot_addx(n,sin(n))");
+	calc.parse_expr("plot_addx(n,-1*sin(n))");
+	calc.parse_expr("plot_add(n,cos(n))");
+	calc.parse_expr("plot_add(n,-1*cos(n))");	
+	calc.parse_expr("plot_addx(n,cos(n))");
+	calc.parse_expr("plot_addx(n,-1*cos(n))");
 	calc.parse_expr("plot_add(n,tan(n))");
+	calc.parse_expr("plot_add(n,-1*tan(n))");
+	calc.parse_expr("plot_addx(n,tan(n))");
+	calc.parse_expr("plot_addx(n,-1*tan(n))");
 
 	calc.parse_expr("plot_addx(n,tan(n))");
 	//calc.parse_expr("plot(-1000,1000,0,100,x,ln(x))");

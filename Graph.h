@@ -86,9 +86,9 @@ namespace plot
 			x_axis.end = x_end;
 			y_axis.start = y_start;
 			y_axis.end = y_end;
-			bgcolor = BLACK;
-			fgcolor = GREEN;
-			gridcolor = LIGHTGRAY;
+			bgcolor = DARKGRAY;
+			fgcolor = BLUE;
+			gridcolor = WHITE;
 			axiscolor = RED;
 			//points.reserve(abs(x_start) + abs(x_end) + abs(y_start) + abs(y_end));
 		}

@@ -22,8 +22,8 @@
 
 
 #define LAST_VALUE "!"
-#define WINDOW_WIDTH 1500
-#define WINDOW_HEIGHT 1500
+#define WINDOW_WIDTH 2000
+#define WINDOW_HEIGHT 2000
 #define MAX_INPUT_CHARS 256
 #define TARGET_FPS 60
 
@@ -568,6 +568,16 @@ public:
 		EndDrawing();
 	}
 
+	void set_fgcolor(Color color)
+	{
+		internal_graph.set_fgcolor(color);
+	}
+
+	Color get_bgcolor()
+	{
+		return internal_graph.get_bgcolor();
+	}
+
 	std::pair<int, int> get_graph_size()
 	{
 		return std::make_pair(internal_graph.get_width(), internal_graph.get_height());
@@ -596,7 +606,27 @@ public:
 	{
 		return std::make_pair(internal_graph.precision_x(), internal_graph.precision_y());
 	}
+
+	void alternate_colors()
+	{
+		alternate = !alternate;
+	}
+
+	Color get_next_color() {
+		if (plot_color_iter == plot_color_map.end()) {
+			plot_color_iter = plot_color_map.begin();
+		}
+		Color color = plot_color_iter->second;
+		++plot_color_iter; // Move to the next color
+		return color;
+	}
+	bool is_alternating()
+	{
+		return alternate;
+	}
 private:
+	bool alternate = false;
+
 	double threshold = 0.1;
 
 	bool window_open = false;
@@ -606,34 +636,63 @@ private:
 	std::string internal_graph_name;
 
 	const std::map<std::string, Color> color_map = {
-	{"lightgray", LIGHTGRAY},
-	{"gray", GRAY},
-	{"darkgray", DARKGRAY},
-	{"yellow", YELLOW},
-	{"gold", GOLD},
-	{"orange", ORANGE},
-	{"pink", PINK},
 	{"red", RED},
-	{"maroon", MAROON},
-	{"green", GREEN},
-	{"lime", LIME},
-	{"darkgreen", DARKGREEN},
-	{"skyblue", SKYBLUE},
 	{"blue", BLUE},
-	{"darkblue", DARKBLUE},
+	{"green", GREEN},
 	{"purple", PURPLE},
-	{"violet", VIOLET},
-	{"darkpurple", DARKPURPLE},
+	{"darkgray", DARKGRAY},
+	{"lightgray", LIGHTGRAY},
+	{"yellow", YELLOW},
+	{"gray", GRAY},
+	{"maroon", MAROON},
+	{"orange", ORANGE},
 	{"beige", BEIGE},
-	{"brown", BROWN},
+	{"magenta", MAGENTA},
+	{"gold", GOLD},
+	{"pink", PINK},
+	{"skyblue", SKYBLUE},
+	{"lime", LIME},
+	{"violet", VIOLET},
+	{"darkgreen", DARKGREEN},
+	{"darkblue", DARKBLUE},
 	{"darkbrown", DARKBROWN},
+	{"darkpurple", DARKPURPLE},
+	{"brown", BROWN},
 	{"white", WHITE},
 	{"black", BLACK},
+	{"raywhite", RAYWHITE},
 	{"blank", BLANK},
-	{"magenta", MAGENTA},
-	{"raywhite", RAYWHITE}
-	// Add more colors if raylib updates
 	};
+	const std::map<std::string, Color> plot_color_map = {
+	{"red", RED},
+	{"blue", BLUE},
+	{"green", GREEN},
+	{"purple", PURPLE},
+	{"darkgray", DARKGRAY},
+	{"lightgray", LIGHTGRAY},
+	{"yellow", YELLOW},
+	{"gray", GRAY},
+	{"maroon", MAROON},
+	{"orange", ORANGE},
+	{"beige", BEIGE},
+	{"magenta", MAGENTA},
+	{"gold", GOLD},
+	{"pink", PINK},
+	{"skyblue", SKYBLUE},
+	{"lime", LIME},
+	{"violet", VIOLET},
+	{"darkgreen", DARKGREEN},
+	{"darkblue", DARKBLUE},
+	{"darkbrown", DARKBROWN},
+	{"darkpurple", DARKPURPLE},
+	{"brown", BROWN},
+	{"white", WHITE},
+	{"black", BLACK},
+	{"raywhite", RAYWHITE},
+	};
+
+	std::map<std::string, Color>::const_iterator& plot_color_iter = plot_color_map.begin();
+
 
 	Color get_color(std::string input)
 	{
@@ -762,6 +821,11 @@ private:
 			internal_graph.clear();
 			return;
 		}
+		else if (input == "alternate")
+		{
+			alternate_colors();
+			return;
+		}
 		else if (input == "help")
 		{
 			std::cout << "Commands:\n";
@@ -777,6 +841,7 @@ private:
 			std::cout << "colors - print the available colors\n";
 			std::cout << "clear - clear the graph\n";
 			std::cout << "mem - print the approximate memory usage of the graph\n";
+			std::cout << "alternate - toggle alternating plot colors\n";
 			std::cout << "help - print this help message\n";
 			return;
 		}
