@@ -4,6 +4,7 @@
 #include <map>
 #include <cmath>
 #include <raylib.h>
+#include "common.h"
 
 namespace plot
 {
@@ -47,6 +48,8 @@ namespace plot
 		void print() const {
 			std::cout << "Start: (" << start.x << ", " << start.y << "), "
 				<< "End: (" << end.x << ", " << end.y << ")\n";
+			mw::MessageWindow::getInstance().add_message("Start: (" + std::to_string(start.x) + ", " + std::to_string(start.y) + "), "
+							+ "End: (" + std::to_string(end.x) + ", " + std::to_string(end.y) + ")\n");
 		}
 		bool operator<(const LineSegment& other) const {
 			if (start != other.start) return start < other.start;
@@ -101,8 +104,11 @@ namespace plot
 
 		void add_line(LineSegment line)
 		{
+			//if (!is_in_range(line.start) || !is_in_range(line.end)) return;
 			lines[line] = fgcolor;
 		}
+
+		
 
 		bool is_in_range(Point p)
 		{
@@ -122,16 +128,6 @@ namespace plot
 		{
 			return Point((p.x - x_axis.start) / (x_axis.end - x_axis.start), (p.y - y_axis.start) / (y_axis.end - y_axis.start));
 		}
-
-		//std::vector<Point> normalize_points()
-		//{
-		//	std::vector<Point> normalizedPoints;
-		//	for (int i = 0; i < points.size(); i++)
-		//	{
-		//		normalizedPoints.push_back(normalize_point(points[i]));
-		//	}
-		//	return normalizedPoints;
-		//}
 
 		void draw_axis()
 		{
@@ -186,19 +182,6 @@ namespace plot
 			draw_ticks();
 			plot();
 		}
-//
-//		void plot()
-//		{
-//#pragma omp parallel for
-//			for (auto& point : points)
-//			{
-//				Point p = normalize_point(point.first);
-//				double inverted_y = 1.0 - p.y;
-//				int x = loc.x + p.x * dim.width;
-//				int y = loc.y + inverted_y * dim.height;
-//				DrawCircle(x, y, POINT_SIZE, point.second);
-//			}
-//		}
 
 		void plot()
 		{

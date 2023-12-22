@@ -43,6 +43,7 @@ namespace func {
 			if (!builtin.available) 
 			{
 				std::cerr << "Error: Attempt to call 'run_builtin' for non-builtin function.\n";
+				mw::MessageWindow::getInstance().print("Error: Attempt to call 'run_builtin' for non-builtin function.\n");
 				return tok::OpToken(0);
 			}
 			if (builtin.num_params == v.size())
@@ -51,6 +52,7 @@ namespace func {
 				return ret;
 			}
 			std::cerr << "Invalid input. Function '" << name << "' expected param count " << builtin.num_params << ", not " << v.size() << "\n";
+			mw::MessageWindow::getInstance().print("Invalid input. Function '" + name + "' expected param count " + std::to_string(builtin.num_params) + ", not " + std::to_string(v.size()) + "\n");
 			return tok::OpToken(0);
 
 		}

@@ -187,6 +187,7 @@ void load_builtin_functions(void)
 			cmn::value end = rpn::eval(s[1]);
 			cmn::value start = rpn::eval(s[0]);
 			std::cout << "{\n";
+			mw::MessageWindow::getInstance().print("{\n");
 			for (size_t n = ((size_t)start); (start > end) ? (n > end) : (n < end);(start > end) ? (n--) : (n++))
 			{
 				auto expr_copy = expr_vec;
@@ -201,8 +202,10 @@ void load_builtin_functions(void)
 				rpn::sort(collapse);
 				ret = rpn::eval(collapse);
 				std::cout << "(x:" << n << ", y:" << ret << "),\n";
+				mw::MessageWindow::getInstance().print("(x:" + std::to_string(n) + ", y:" + std::to_string(ret) + "),\n");
 			}
 			std::cout << "\b}\n";
+			mw::MessageWindow::getInstance().print("\b}\n");
 			return tok::OpToken(ret);
 		});
 	// takes x-axist start & end, y-axis start & end, sole variable name, expression;
@@ -229,7 +232,7 @@ void load_builtin_functions(void)
 			cmn::value ret = 0;
 			cmn::value start = s[0][0].GetValue();
 			cmn::value end = s[1][0].GetValue();
-			plot::Graph g(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT, std::min((int)start, (int)end), std::max((int)start, (int)end), std::min((int)s[2][0].GetValue(), (int)s[3][0].GetValue()), std::max((int)s[2][0].GetValue(), (int)s[3][0].GetValue()));
+			plot::Graph g(GRAPH_X, GRAPH_Y, GRAPH_WIDTH, GRAPH_HEIGHT, std::min((int)start, (int)end), std::max((int)start, (int)end), std::min((int)s[2][0].GetValue(), (int)s[3][0].GetValue()), std::max((int)s[2][0].GetValue(), (int)s[3][0].GetValue()));
 			if (calc.is_alternating())
 				g.set_fgcolor(calc.get_next_color());
 			std::string name = "plot(";
@@ -243,7 +246,10 @@ void load_builtin_functions(void)
 			plot::Point last;
 			bool first = true;
 			if (rpn::debug)
-			std::cout << "{\n";
+			{
+				std::cout << "{\n";
+				mw::MessageWindow::getInstance().print("{\n");
+			}
 			double y_axis_range = calc.get_graph().get_y_end() - calc.get_graph().get_y_start();
 			// Set the threshold as a small percentage of the y-axis range
 			const double threshold = POINT_THRESHOLD * y_axis_range; // Example: 5% of the y-axis range
@@ -274,14 +280,21 @@ void load_builtin_functions(void)
 				last = plot::Point(n, ret);
 			
 				if (rpn::debug)
-				std::cout << "(x:" << n << ", y:" << ret << "),\n";
+				{
+					std::cout << "(x:" << n << ", y:" << ret << "),\n";
+					mw::MessageWindow::getInstance().print("(x:" + std::to_string(n) + ", y:" + std::to_string(ret) + "),\n");
+				}
 			}
 			if (rpn::debug)
-			std::cout << "\b}\n";
+			{
+				std::cout << "\b}\n";
+				mw::MessageWindow::getInstance().print("\b}\n");
+			}
 			auto end_time = std::chrono::high_resolution_clock::now();
 			calc.draw();
 			std::chrono::duration<double, std::milli> duration = end_time - start_time;
 			std::cout << "Plot took " << duration.count() << "ms\n";
+			mw::MessageWindow::getInstance().print("Plot took " + std::to_string(duration.count()) + "ms\n");
 			return tok::OpToken(ret);
 		});
 	func::add_builtin_func("plot_add", 2, [](std::vector<std::vector<tok::OpToken>> s)
@@ -314,6 +327,7 @@ void load_builtin_functions(void)
 			if (rpn::debug)
 			{
 				std::cout << "{\n";
+				mw::MessageWindow::getInstance().print("{\n");
 			}
 			if (calc.is_alternating())
 				calc.set_fgcolor(calc.get_next_color());
@@ -352,14 +366,22 @@ void load_builtin_functions(void)
 				first = false;
 				last = tmp;
 				if (rpn::debug)
-				std::cout << "(x:" << n << ", y:" << ret << "),\n";
+				{
+					std::cout << "(x:" << n << ", y:" << ret << "),\n";
+					mw::MessageWindow::getInstance().print("(x:" + std::to_string(n) + ", y:" + std::to_string(ret) + "),\n");
+				}
+
 				//calc.add_point(plot::Point(n, ret));
 			}
 			if (rpn::debug)
-			std::cout << "\b}\n";
+			{
+				std::cout << "\b}\n";
+				mw::MessageWindow::getInstance().print("\b}\n");
+			}
 			auto end_time = std::chrono::high_resolution_clock::now();
 			std::chrono::duration<double, std::milli> duration = end_time - start_time;
 			std::cout << "Plot took " << duration.count() << "ms\n";
+			mw::MessageWindow::getInstance().print("Plot took " + std::to_string(duration.count()) + "ms\n");
 			return tok::OpToken(ret);
 		});
 
@@ -396,6 +418,7 @@ void load_builtin_functions(void)
 			if (rpn::debug)
 			{
 				std::cout << "{\n";
+				mw::MessageWindow::getInstance().print("{\n");
 			}
 			if (calc.is_alternating())
 				calc.set_fgcolor(calc.get_next_color());
@@ -435,14 +458,21 @@ void load_builtin_functions(void)
 				first = false;
 				last = tmp;
 				if (rpn::debug)
+				{
 					std::cout << "(x:" << n << ", y:" << ret << "),\n";
+					mw::MessageWindow::getInstance().print("(x:" + std::to_string(n) + ", y:" + std::to_string(ret) + "),\n");
+				}
 				//calc.add_point(plot::Point(n, ret));
 			}
 			if (rpn::debug)
+			{
 				std::cout << "\b}\n";
+				mw::MessageWindow::getInstance().print("\b}\n");
+			}
 			auto end_time = std::chrono::high_resolution_clock::now();
 			std::chrono::duration<double, std::milli> duration = end_time - start_time;
 			std::cout << "Plot took " << duration.count() << "ms\n";
+			mw::MessageWindow::getInstance().print("Plot took " + std::to_string(duration.count()) + "ms\n");
 			return tok::OpToken(ret);
 		});
 	// takes range begin, end, step, sole variable name, expression;
@@ -459,6 +489,7 @@ void load_builtin_functions(void)
 			if (step <= 0)
 			{
 				std::cerr << "Invalid input. Step must be greater than 0.\n";
+				mw::MessageWindow::getInstance().print("Invalid input. Step must be greater than 0.\n");
 				return tok::OpToken(0);
 			}
 			std::vector<size_t> idxs;
@@ -471,6 +502,7 @@ void load_builtin_functions(void)
 			cmn::value end = rpn::eval(s[1]);
 			cmn::value start = rpn::eval(s[0]);
 			std::cout << "{\n";
+			mw::MessageWindow::getInstance().print("{\n");
 			for (double n = start; (start > end) ? (n > end) : (n < end); n += (start > end) ? (-step) : (step))
 			{
 				auto expr_copy = expr_vec;
@@ -485,8 +517,10 @@ void load_builtin_functions(void)
 				rpn::sort(collapse);
 				ret = rpn::eval(collapse);
 				std::cout << "(x:" << n << ", y:" << ret << "),\n";
+				mw::MessageWindow::getInstance().print("(x:" + std::to_string(n) + ", y:" + std::to_string(ret) + "),\n");
 			}
 			std::cout << "\b}\n";
+			mw::MessageWindow::getInstance().print("\b}\n");
 			return tok::OpToken(ret);
 		});
 }
