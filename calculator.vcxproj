@@ -136,6 +136,7 @@
     <ClInclude Include="Graph.h" />
     <ClInclude Include="OpToken.h" />
     <ClInclude Include="rpn.h" />
+    <ClInclude Include="MessageWindow.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

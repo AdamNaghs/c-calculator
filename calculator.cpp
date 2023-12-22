@@ -240,7 +240,6 @@ void load_builtin_functions(void)
 			name.append("\b)");
 			calc.plot(g, name);
 			double step = g.precision_x();
-			calc.set_threshold(step);
 			plot::Point last;
 			bool first = true;
 			if (rpn::debug)
@@ -358,7 +357,6 @@ void load_builtin_functions(void)
 			}
 			if (rpn::debug)
 			std::cout << "\b}\n";
-			calc.set_threshold(step);
 			auto end_time = std::chrono::high_resolution_clock::now();
 			std::chrono::duration<double, std::milli> duration = end_time - start_time;
 			std::cout << "Plot took " << duration.count() << "ms\n";
@@ -442,7 +440,6 @@ void load_builtin_functions(void)
 			}
 			if (rpn::debug)
 				std::cout << "\b}\n";
-			calc.set_threshold(step);
 			auto end_time = std::chrono::high_resolution_clock::now();
 			std::chrono::duration<double, std::milli> duration = end_time - start_time;
 			std::cout << "Plot took " << duration.count() << "ms\n";

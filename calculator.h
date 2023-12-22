@@ -18,21 +18,21 @@
 #include <functional>
 #include <conio.h>
 
-
-
-
 #define LAST_VALUE "!"
 #define WINDOW_WIDTH 2000
 #define WINDOW_HEIGHT 2000
 #define MAX_INPUT_CHARS 256
 #define TARGET_FPS 60
 
-void empty_func(void){}
+void empty_func(void) {}
 class Calculator
 {
 private:
 	std::vector<std::string> history;
 	std::vector<std::string> future;
+	std::vector<std::string> input_history;
+	const int MAX_INPUT_HISTORY = 15;
+
 
 public:
 	Calculator() {}
@@ -43,6 +43,7 @@ public:
 		//future.clear();
 		internal_graph.clear();
 	}
+
 	void parse_expr(std::string input)
 	{
 		int found_eq = -1;
@@ -213,6 +214,7 @@ public:
 					{
 						std::cout << "\n";
 						history.push_back(ret);
+						input_history.push_back(ret);
 						return ret;
 					}
 
@@ -388,6 +390,7 @@ public:
 			std::cout << "\n";
 		}
 		history.push_back(ret);
+		input_history.push_back(ret);
 		return ret;
 	}
 
@@ -517,20 +520,21 @@ public:
 
 			handle_input(input);
 
-				// Prepare for the next input
-			//	input_future = std::async(std::launch::async, [&]() {
-			//		std::string new_input;
-			//		std::cout << "\nInput expression: ";
-			//		std::getline(std::cin, new_input);
-			//		std::cout << "\n";
-			//		return new_input;
-			//		});
-			//}
+			// Prepare for the next input
+		//	input_future = std::async(std::launch::async, [&]() {
+		//		std::string new_input;
+		//		std::cout << "\nInput expression: ";
+		//		std::getline(std::cin, new_input);
+		//		std::cout << "\n";
+		//		return new_input;
+		//		});
+		//}
 
-			// Sleep for a short duration to reduce CPU usage
-			/*std::this_thread::sleep_for(std::chrono::milliseconds(10));*/
+		// Sleep for a short duration to reduce CPU usage
+		/*std::this_thread::sleep_for(std::chrono::milliseconds(10));*/
 		}
 	}
+
 	void plot(plot::Graph graph, std::string name)
 	{
 		if (!window_open) start_window();
@@ -593,16 +597,7 @@ public:
 		return std::make_pair(internal_graph.get_y_start(), internal_graph.get_y_end());
 	}
 
-	void set_threshold(double threshold)
-	{
-		this->threshold = threshold;
-	}
-
-	double get_threshold()
-	{
-		return threshold;
-	}
-	std::pair<double,double> get_precision()
+	std::pair<double, double> get_precision()
 	{
 		return std::make_pair(internal_graph.precision_x(), internal_graph.precision_y());
 	}
@@ -620,14 +615,13 @@ public:
 		++plot_color_iter; // Move to the next color
 		return color;
 	}
+
 	bool is_alternating()
 	{
 		return alternate;
 	}
 private:
 	bool alternate = false;
-
-	double threshold = 0.1;
 
 	bool window_open = false;
 
@@ -663,6 +657,7 @@ private:
 	{"raywhite", RAYWHITE},
 	{"blank", BLANK},
 	};
+
 	const std::map<std::string, Color> plot_color_map = {
 	{"red", RED},
 	{"blue", BLUE},
@@ -692,7 +687,6 @@ private:
 	};
 
 	std::map<std::string, Color>::const_iterator& plot_color_iter = plot_color_map.begin();
-
 
 	Color get_color(std::string input)
 	{
@@ -734,7 +728,7 @@ private:
 			std::cout << "Approximate map size: " << sizeInMB << " MB" << std::endl;
 		}
 	}
-	
+
 	void handle_input(std::string input)
 	{
 		if (input == "quit")
@@ -784,7 +778,8 @@ private:
 			Color color = get_color(input);
 			internal_graph.set_gridcolor(color);
 			return;
-		}else if (input.find("setaxis ") == 0)
+		}
+		else if (input.find("setaxis ") == 0)
 		{
 			input.erase(input.begin(), input.begin() + 8);
 			Color color = get_color(input);
@@ -810,7 +805,7 @@ private:
 			std::map<plot::Point, Color> points;
 			for (auto it = map.begin(); it != map.end(); it++)
 			{
-				points.insert(std::make_pair<>(it->first.start,it->second));
+				points.insert(std::make_pair<>(it->first.start, it->second));
 				points.insert(std::make_pair<>(it->first.end, it->second));
 			}
 			print_map_capacity(points);
@@ -880,5 +875,3 @@ private:
 	}
 
 };
-
-

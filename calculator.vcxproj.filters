@@ -50,5 +50,8 @@
     <ClInclude Include="calculator.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="MessageWindow.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
