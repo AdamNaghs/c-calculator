@@ -208,7 +208,7 @@ void load_builtin_functions(void)
 			cmn::value ret = 0;
 			cmn::value start = s[0][0].GetValue();
 			cmn::value end = s[1][0].GetValue();
-			plot::Graph g(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT, (int)start, (int)end, (int)s[2][0].GetValue(), (int)s[3][0].GetValue());
+			plot::Graph g(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT, std::min((int)start, (int)end), std::max((int)start, (int)end), std::min((int)s[2][0].GetValue(), (int)s[3][0].GetValue()), std::max((int)s[2][0].GetValue(), (int)s[3][0].GetValue()));
 			std::string name = "plot(";
 			for (auto& v : s)
 			{
@@ -343,11 +343,14 @@ void load_builtin_functions(void)
 		{
 			auto start_time = std::chrono::high_resolution_clock::now();
 			std::vector<size_t> idxs;
-			std::vector<tok::OpToken> expr_vec = s[1];
 			std::vector<tok::OpToken> var_vec = s[0];
+			std::vector<tok::OpToken> expr_vec = s[1];
 			for (int i = 0; i < expr_vec.size(); i++)
 			{
-				if (expr_vec[i].GetType() == tok::FUNCTION && expr_vec[i].GetName() == var_vec[0].GetName()) idxs.emplace_back(i);
+				if (expr_vec[i].GetType() == tok::FUNCTION && expr_vec[i].GetName() == var_vec[0].GetName())
+				{
+					idxs.emplace_back(i);
+				}
 			}
 			cmn::value ret = 0;
 			auto pair = calc.get_x_axis();
@@ -525,6 +528,8 @@ int main(void)
 	calc.parse_expr("plot_add(n,ln(n))");
 	calc.parse_expr("plot_add(n,sin(n))");
 	calc.parse_expr("plot_add(n,tan(n))");
+
+	calc.parse_expr("plot_addx(n,tan(n))");
 	//calc.parse_expr("plot(-1000,1000,0,100,x,ln(x))");
 
 	calc.input_loop();

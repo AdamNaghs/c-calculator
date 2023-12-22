@@ -30,9 +30,19 @@
 void empty_func(void){}
 class Calculator
 {
+private:
+	std::vector<std::string> history;
+	std::vector<std::string> future;
+
 public:
 	Calculator() {}
 	~Calculator() { }
+	void clear()
+	{
+		//history.clear();
+		//future.clear();
+		internal_graph.clear();
+	}
 	void parse_expr(std::string input)
 	{
 		int found_eq = -1;
@@ -187,7 +197,7 @@ public:
 	}
 	std::string get_input(std::function<void()> optional_func = empty_func)
 	{
-		int letterCount = 0;
+		int cursor = 0;
 		std::string ret;
 		std::cout << "\nInput expression: ";
 		if (window_open)
@@ -198,6 +208,7 @@ public:
 
 				if (ch == '\r') { // Enter key pressed
 					std::cout << "\n";
+					history.push_back(ret);
 					return ret;
 				}
 
@@ -206,12 +217,61 @@ public:
 						ret.pop_back();
 						std::cout << "\b \b" << std::flush; // Erase the last character on console
 					}
+					goto exit_loop;
 				}
-				else if (ch >= 32 && ch <= 126) { // Printable characters
+				else if (ch == -32) // Special keys (like arrow keys)
+				{
+					int arrow = _getch(); // Get the second character
+					std::string tmp(cursor, '\b'),tmp1(cursor,' ');
+					
+					switch (arrow)
+					{
+					case 72: // Up arrow
+						future.push_back(ret);
+						if (!history.empty())
+						{
+							ret = history.back();
+							history.pop_back();
+							cursor = ret.size();
+							std::cout << tmp << tmp1 << tmp << ret << std::flush;
+						}
+						break;
+					case 80: // Down arrow
+						history.push_back(ret);
+						if (!future.empty())
+						{
+							ret = future.back();
+							future.pop_back();
+						}
+						else
+						{
+							ret = "";
+						}
+						cursor = ret.size();
+						std::cout << tmp << tmp1 << tmp << ret << std::flush;
+						break;
+					case 75: // Left arrow
+						if (cursor > 0)
+						{
+							std::cout << "\b" << std::flush;
+							cursor--;
+						}
+						break;
+					case 77: // Right arrow
+						if (cursor < ret.size())
+						{
+							std::cout << "\b" << std::flush;
+							cursor++;
+						}
+						break;
+					}
+				} else if (ch >= 32 && ch <= 126) { // Printable characters
 					ret.push_back(ch);
 					std::cout << ch << std::flush; // Display the character
+					cursor++;
 				}
 			}
+			exit_loop:
 			optional_func(); // Update the graph if the window is open
 			//std::this_thread::sleep_for(std::chrono::milliseconds(50)); // Reduce CPU usage
 			// Only work on raylib windows
@@ -248,6 +308,7 @@ public:
 			std::getline(std::cin, ret);
 			std::cout << "\n";
 		}
+		history.push_back(ret);
 		return ret;
 	}
 	void input_loop()
