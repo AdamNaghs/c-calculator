@@ -240,7 +240,7 @@ namespace func {
 		for (std::vector<tok::OpToken>& tokens : token_vecs) \
 		{
 			if (tokens.empty()) continue;
-			if (tokens.size() == 1 && tokens[0].GetType() == tok::TokenType::VALUE) continue;
+			if (tokens.size() == 1 && tokens[0].GetType() == tok::TokenType::VALUE) continue; // prevent adding more calls to the stack just to yield the same value
 			tokens = collapse_function(tokens, encountered_error);
 			if (encountered_error) break;
 		}
@@ -251,6 +251,5 @@ namespace func {
 	{
 		table[name] = Function(name, param_len, func);
 	}
-
 
 }

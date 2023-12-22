@@ -37,10 +37,6 @@ namespace plot
 		}
 	};
 
-	bool is_continous(const plot::Point& p1, const plot::Point& p2, double threshold = 1e6) {
-		return std::abs(p1.y - p2.y) < threshold;
-	}
-
 	class LineSegment {
 	public:
 		Point start;
@@ -90,9 +86,9 @@ namespace plot
 			x_axis.end = x_end;
 			y_axis.start = y_start;
 			y_axis.end = y_end;
-			bgcolor = BLACK;
-			fgcolor = GREEN;
-			gridcolor = LIGHTGRAY;
+			bgcolor = DARKGRAY;
+			fgcolor = BLUE;
+			gridcolor = WHITE;
 			axiscolor = RED;
 			//points.reserve(abs(x_start) + abs(x_end) + abs(y_start) + abs(y_end));
 		}
