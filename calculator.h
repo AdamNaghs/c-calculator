@@ -15,7 +15,8 @@
 #include <map>
 #include <cmath>
 #include <limits>
-
+#include <functional>
+#include <conio.h>
 
 
 
@@ -23,12 +24,25 @@
 #define LAST_VALUE "!"
 #define WINDOW_WIDTH 1500
 #define WINDOW_HEIGHT 1500
+#define MAX_INPUT_CHARS 256
+#define TARGET_FPS 12
 
+void empty_func(void){}
 class Calculator
 {
+private:
+	std::vector<std::string> history;
+	std::vector<std::string> future;
+
 public:
 	Calculator() {}
 	~Calculator() { }
+	void clear()
+	{
+		//history.clear();
+		//future.clear();
+		internal_graph.clear();
+	}
 	void parse_expr(std::string input)
 	{
 		int found_eq = -1;
@@ -181,37 +195,154 @@ public:
 			std::cout << n << " = " << input << tmp << "\n";
 		}
 	}
+	std::string get_input(std::function<void()> optional_func = empty_func)
+	{
+		int cursor = 0;
+		std::string ret;
+		std::cout << "\nInput expression: ";
+		if (window_open)
+		while(1)
+		{
+			if (_kbhit()) {
+				char ch = _getch();
+
+				if (ch == '\r') { // Enter key pressed
+					std::cout << "\n";
+					history.push_back(ret);
+					return ret;
+				}
+
+				if (ch == '\b') { // Backspace pressed
+					if (!ret.empty()) {
+						ret.pop_back();
+						std::cout << "\b \b" << std::flush; // Erase the last character on console
+					}
+					goto exit_loop;
+				}
+				else if (ch == -32) // Special keys (like arrow keys)
+				{
+					int arrow = _getch(); // Get the second character
+					std::string tmp(cursor, '\b'),tmp1(cursor,' ');
+					
+					switch (arrow)
+					{
+					case 72: // Up arrow
+						future.push_back(ret);
+						if (!history.empty())
+						{
+							ret = history.back();
+							history.pop_back();
+							cursor = ret.size();
+							std::cout << tmp << tmp1 << tmp << ret << std::flush;
+						}
+						break;
+					case 80: // Down arrow
+						history.push_back(ret);
+						if (!future.empty())
+						{
+							ret = future.back();
+							future.pop_back();
+						}
+						else
+						{
+							ret = "";
+						}
+						cursor = ret.size();
+						std::cout << tmp << tmp1 << tmp << ret << std::flush;
+						break;
+					case 75: // Left arrow
+						if (cursor > 0)
+						{
+							std::cout << "\b" << std::flush;
+							cursor--;
+						}
+						break;
+					case 77: // Right arrow
+						if (cursor < ret.size())
+						{
+							std::cout << "\b" << std::flush;
+							cursor++;
+						}
+						break;
+					}
+				} else if (ch >= 32 && ch <= 126) { // Printable characters
+					ret.push_back(ch);
+					std::cout << ch << std::flush; // Display the character
+					cursor++;
+				}
+			}
+			exit_loop:
+			optional_func(); // Update the graph if the window is open
+			//std::this_thread::sleep_for(std::chrono::milliseconds(50)); // Reduce CPU usage
+			// Only work on raylib windows
+			// Get char pressed (unicode character) on the queue
+			/*int key = GetCharPressed();*/
+
+			// Check if more characters have been pressed on the same frame
+			//while (key > 0)
+			//{
+			//	// NOTE: Only allow keys in range [32..125]
+			//	if ((key >= 32) && (key <= 125) && (letterCount < MAX_INPUT_CHARS))
+			//	{
+			//		std::cout << char(key);
+			//		ret.push_back((char)key);
+			//		letterCount++;
+			//	}
+			//	key = GetCharPressed();  // Check next character in the queue
+			//}
+
+			//if (IsKeyPressed(KEY_BACKSPACE))
+			//{
+			//	letterCount--;
+			//	if (letterCount < 0) letterCount = 0;
+			//	std::cout << "\b \b";
+			//	ret.pop_back();
+			//}
+			//else if (IsKeyPressed(KEY_ENTER))
+			//{
+			//	return ret;
+			//}
+		}
+		else
+		{
+			std::getline(std::cin, ret);
+			std::cout << "\n";
+		}
+		history.push_back(ret);
+		return ret;
+	}
 	void input_loop()
 	{
-		auto input_future = std::async(std::launch::async, [&]() {
-			std::string input;
-			std::cout << "\nInput expression: ";
-			std::getline(std::cin, input);
-			std::cout << "\n";
-			return input;
-			});
+		//auto input_future = std::async(std::launch::async, [&]() {
+		//	std::string input;
+		//	std::cout << "\nInput expression: ";
+		//	std::getline(std::cin, input);
+		//	std::cout << "\n";
+		//	return input;
+		//	});
 
 		while (1)
 		{
 			update_graph();
 			// Check if input is ready
-			if (input_future.wait_for(std::chrono::milliseconds(0)) == std::future_status::ready) {
-				std::string input = input_future.get();
+			//if (input_future.wait_for(std::chrono::milliseconds(0)) == std::future_status::ready) {
+			//	std::string input = input_future.get();
+			std::string input = get_input(std::bind(&Calculator::update_graph, this));
 
-				handle_input(input);
+			handle_input(input);
 
 				// Prepare for the next input
-				input_future = std::async(std::launch::async, [&]() {
-					std::string new_input;
-					std::cout << "\nInput expression: ";
-					std::getline(std::cin, new_input);
-					std::cout << "\n";
-					return new_input;
-					});
-			}
+			//	input_future = std::async(std::launch::async, [&]() {
+			//		std::string new_input;
+			//		std::cout << "\nInput expression: ";
+			//		std::getline(std::cin, new_input);
+			//		std::cout << "\n";
+			//		return new_input;
+			//		});
+			//}
 
 			// Sleep for a short duration to reduce CPU usage
-			std::this_thread::sleep_for(std::chrono::milliseconds(10));
+			/*std::this_thread::sleep_for(std::chrono::milliseconds(10));*/
 		}
 	}
 	void plot(plot::Graph graph, std::string name)
@@ -220,15 +351,35 @@ public:
 		internal_graph = graph;
 		internal_graph_name = name;
 		BeginDrawing();
-		ClearBackground(WHITE);
+		ClearBackground(internal_graph.get_bgcolor());
 		internal_graph.draw();
 		// Draw points
 		EndDrawing();
 	}
 
+	plot::Graph get_graph()
+	{
+		return internal_graph;
+	}
+
+	void add_line(plot::LineSegment line)
+	{
+		internal_graph.add_line(line);
+	}
+
 	bool is_plotting()
 	{
 		return window_open;
+	}
+
+	void draw()
+	{
+		if (!window_open) start_window();
+		BeginDrawing();
+		ClearBackground(internal_graph.get_bgcolor());
+		internal_graph.draw();
+		// Draw points
+		EndDrawing();
 	}
 
 	std::pair<int, int> get_graph_size()
@@ -246,25 +397,18 @@ public:
 		return std::make_pair(internal_graph.get_y_start(), internal_graph.get_y_end());
 	}
 
-	void add_point(int x, int y)
-	{
-		internal_graph.add_point(x, y);
-	}
-
-	void add_point(plot::Point p)
-	{
-		internal_graph.add_point(p);
-	}
-
-	void add_point(std::vector<plot::Point> v)
-	{
-		internal_graph.add_point(v);
-		update_graph();
-	}
-
 	void set_threshold(double threshold)
 	{
 		this->threshold = threshold;
+	}
+
+	double get_threshold()
+	{
+		return threshold;
+	}
+	std::pair<double,double> get_precision()
+	{
+		return std::make_pair(internal_graph.precision_x(), internal_graph.precision_y());
 	}
 private:
 	double threshold = 0.1;
@@ -316,6 +460,36 @@ private:
 		}
 	}
 
+	unsigned long print_map_capacity(const std::map<plot::Point, Color>& map) {
+		unsigned long cap = sizeof(map);
+		for (auto it = map.begin(); it != map.end(); ++it) {
+			cap += sizeof(it);
+		}
+		double sizeInMB = static_cast<double>(cap) / (1024 * 1024);
+		double sizeInGB = sizeInMB / 1024;
+		if (sizeInGB >= 1.0) {
+			std::cout << "Approximate map size: " << sizeInGB << " GB" << std::endl;
+		}
+		else {
+			std::cout << "Approximate map size: " << sizeInMB << " MB" << std::endl;
+		}
+		return cap;
+	}
+
+	void print_points_size(const std::map<plot::Point, Color>& m) {
+		size_t sizeInBytes = m.size() * (sizeof(plot::Point) + sizeof(Color) + sizeof(std::map<plot::Point, Color>));
+
+		double sizeInMB = static_cast<double>(sizeInBytes) / (1024 * 1024);
+		double sizeInGB = sizeInMB / 1024;
+
+		if (sizeInGB >= 1.0) {
+			std::cout << "Approximate map size: " << sizeInGB << " GB" << std::endl;
+		}
+		else {
+			std::cout << "Approximate map size: " << sizeInMB << " MB" << std::endl;
+		}
+	}
+	
 	void handle_input(std::string input)
 	{
 		if (input == "quit")
@@ -380,6 +554,46 @@ private:
 			}
 			return;
 		}
+		else if (input == "clear")
+		{
+			internal_graph.clear_points();
+			return;
+		}
+		else if (input == "mem")
+		{
+			auto map = internal_graph.get_lines();
+			std::map<plot::Point, Color> points;
+			for (auto it = map.begin(); it != map.end(); it++)
+			{
+				points.insert(std::make_pair<>(it->first.start,it->second));
+				points.insert(std::make_pair<>(it->first.end, it->second));
+			}
+			print_map_capacity(points);
+			return;
+		}
+		else if (input == "clear")
+		{
+			internal_graph.clear();
+			return;
+		}
+		else if (input == "help")
+		{
+			std::cout << "Commands:\n";
+			std::cout << "quit - quit the program\n";
+			std::cout << "table - print the function table\n";
+			std::cout << "test <expr> - test the parser and RPN sort on <expr>\n";
+			std::cout << "dump - dump the function table\n";
+			std::cout << "debug - toggle debug mode\n";
+			std::cout << "setfg <color> - set the foreground color\n";
+			std::cout << "setbg <color> - set the background color\n";
+			std::cout << "setgrid <color> - set the grid color\n";
+			std::cout << "setaxis <color> - set the axis color\n";
+			std::cout << "colors - print the available colors\n";
+			std::cout << "clear - clear the graph\n";
+			std::cout << "mem - print the approximate memory usage of the graph\n";
+			std::cout << "help - print this help message\n";
+			return;
+		}
 		parse_expr(input);
 	}
 
@@ -403,7 +617,7 @@ private:
 	void start_window()
 	{
 		InitWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "Graph");
-		SetTargetFPS(60);
+		SetTargetFPS(TARGET_FPS);
 		window_open = true;
 	}
 
@@ -415,4 +629,8 @@ private:
 	}
 
 
+
+
 };
+
+

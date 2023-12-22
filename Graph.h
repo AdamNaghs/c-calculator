@@ -7,12 +7,15 @@
 
 namespace plot
 {
+
+#define POINT_SIZE 2
 	class Point
 	{
 	public:
 		double x, y;
+		Point() : x(0), y(0) {}
 		Point(double x, double y) : x(x), y(y) {}
-		//~Point() {}
+		~Point() {}
 		friend std::ostream& operator<<(std::ostream& os, const Point& p)
 		{
 			os << "(" << p.x << ", " << p.y << ")";
@@ -22,8 +25,56 @@ namespace plot
 			if (x != other.x) return x < other.x;
 			return y < other.y;
 		}
+
+		bool operator==(const Point& other) const {
+			return (x == other.x && y == other.y);
+		}
+		bool operator!=(const Point& other) const {
+			return !(*this == other);
+		}
+		Point as_negative() {
+			return Point(-x, -y);
+		}
 	};
 
+	bool is_continous(const plot::Point& p1, const plot::Point& p2, double threshold = 1e6) {
+		return std::abs(p1.y - p2.y) < threshold;
+	}
+
+	class LineSegment {
+	public:
+		Point start;
+		Point end;
+
+		LineSegment(const Point& start, const Point& end) : start(start), end(end) {}
+
+		void print() const {
+			std::cout << "Start: (" << start.x << ", " << start.y << "), "
+				<< "End: (" << end.x << ", " << end.y << ")\n";
+		}
+		bool operator<(const LineSegment& other) const {
+			if (start != other.start) return start < other.start;
+			return end < other.end;
+		}
+
+	};
+
+	std::map<LineSegment, Color> create_line_segment(const std::map<Point, Color>& points) {
+		std::map<LineSegment, Color> lineSegments;
+
+		if (points.empty()) {
+			return lineSegments;
+		}
+
+		auto last = points.begin();
+		for (auto it = std::next(points.begin()); it != points.end(); ++it) {
+			LineSegment l(last->first, it->first);
+			lineSegments[l] = last->second;
+			last = it;
+		}
+
+		return lineSegments;
+	}
 
 	class Graph
 	{
@@ -48,35 +99,26 @@ namespace plot
 		Graph(){}
 		~Graph()
 		{
-			points.clear();
+			lines.clear();
 			//normalized_points.clear();
 		}
 
-		void add_point(Point p)
+		void add_line(LineSegment line)
 		{
-			if (invalid_point(p)) return;
-			points.insert(std::make_pair<>(p,fgcolor));
-			//normalized_points.push_back(normalize_point(p));
+			lines[line] = fgcolor;
 		}
 
-		void add_point(double x, double y)
+		bool is_in_range(Point p)
 		{
-			add_point(Point(x, y));
-		}
-
-
-		void add_point(std::vector<Point> _points)
-		{
-			for (int i = 0; i < _points.size(); i++)
-			{
-				add_point(_points[i]);
-			}
+			if (p.x < x_axis.start || p.x > x_axis.end) return false;
+			if (p.y < y_axis.start || p.y > y_axis.end) return false;
+			return true;
 		}
 
 
 		void clear_points()
 		{
-			points.clear();
+			lines.clear();
 			//normalized_points.clear();
 		}
 
@@ -97,7 +139,6 @@ namespace plot
 
 		void draw_axis()
 		{
-			
 			int x_axis_y = loc.y + dim.height * (1.0 - (0.0 - y_axis.start) / (y_axis.end - y_axis.start));
 			int y_axis_x = loc.x + dim.width * ((0.0 - x_axis.start) / (x_axis.end - x_axis.start));
 			DrawLine(loc.x, x_axis_y, loc.x + dim.width, x_axis_y, axiscolor);
@@ -149,18 +190,34 @@ namespace plot
 			draw_ticks();
 			plot();
 		}
-
+//
+//		void plot()
+//		{
+//#pragma omp parallel for
+//			for (auto& point : points)
+//			{
+//				Point p = normalize_point(point.first);
+//				double inverted_y = 1.0 - p.y;
+//				int x = loc.x + p.x * dim.width;
+//				int y = loc.y + inverted_y * dim.height;
+//				DrawCircle(x, y, POINT_SIZE, point.second);
+//			}
+//		}
 
 		void plot()
 		{
 			#pragma omp parallel for
-			for (auto point : points)
+			for (auto& line : lines)
 			{
-				Point p = normalize_point(point.first);
+				Point p = normalize_point(line.first.start);
+				Point q = normalize_point(line.first.end);
 				double inverted_y = 1.0 - p.y;
-				int x = loc.x + p.x * dim.width;
-				int y = loc.y + inverted_y * dim.height;
-				DrawCircle(x, y, 2, point.second);
+				int x1 = loc.x + p.x * dim.width;
+				int y1 = loc.y + inverted_y * dim.height;
+				double inverted_y2 = 1.0 - q.y;
+				int x2 = loc.x + q.x * dim.width;
+				int y2 = loc.y + inverted_y2 * dim.height;
+				DrawLine(x1, y1, x2, y2, line.second);
 			}
 		}
 
@@ -174,9 +231,9 @@ namespace plot
 			this->fgcolor = color;
 		}
 
-		std::map<Point,Color> get_points()
+		std::map<LineSegment, Color> get_lines()
 		{
-			return points;
+			return lines;
 		}
 
 		//std::vector<Point> get_normalized_points()
@@ -233,6 +290,35 @@ namespace plot
 			this->axiscolor = color;
 		}
 
+		void clear()
+		{
+			//points.clear();
+			lines.clear();
+		}
+
+
+		double precision_x() const {
+			double x_range = abs(x_axis.end - x_axis.start);
+			double pixelsPerUnitX = static_cast<double>(dim.width) / x_range;
+			return 1 / pixelsPerUnitX;
+		}
+
+		double precision_y() const {
+			double y_range = abs(x_axis.end - x_axis.start);
+			double pixelsPerUnitY = static_cast<double>(dim.height) / y_range;
+			return 1 / pixelsPerUnitY;
+		}
+
+		Color get_bgcolor()
+		{
+			return bgcolor;
+		}
+
+		Color get_fgcolor()
+		{
+			return fgcolor;
+		}
+
 
 	private:
 		double distanceBetweenPoints(const Point& a, const Point& b) {
@@ -266,7 +352,8 @@ namespace plot
 		{
 			int start, end;
 		} x_axis, y_axis;
-		std::map<Point,Color> points;
+		//std::map<plot::Point, Color> points;
+		std::map<LineSegment,Color> lines;
 		//std::vector<Point> normalized_points;
 		Color bgcolor;
 		Color fgcolor;
