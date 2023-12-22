@@ -112,6 +112,7 @@ namespace func {
 			if (funcIt->second.builtin.num_params + funcIt->second.GetParams().size())
 			{
 				std::cerr << "Invalid input. Function '" << funcIt->second.GetName() << "' expected param count " << funcIt->second.GetParams().size() + funcIt->second.builtin.num_params << ", not 0\n";
+				mw::MessageWindow::getInstance().print("Invalid input. Function '" + funcIt->second.GetName() + "' expected param count " + std::to_string(funcIt->second.GetParams().size() + funcIt->second.builtin.num_params) + ", not 0\n");
 				return INVALID_INPUT;
 			}
 			return FAILURE;
@@ -119,6 +120,7 @@ namespace func {
 		if (leftParenIt->GetOperator() == cmn::op::COMMA)
 		{
 			std::cerr << "Invalid input. Unexpected comma.\n";
+			mw::MessageWindow::getInstance().print("Invalid input. Unexpected comma.\n");
 			return INVALID_INPUT;
 		}
 
@@ -138,6 +140,7 @@ namespace func {
 		if (arguments.size() != (funcIt->second.GetParams().size() + funcIt->second.builtin.num_params))
 		{
 			std::cerr << "Invalid input. Function '" << funcIt->second.GetName() << "' expected param count " << funcIt->second.GetParams().size() + funcIt->second.builtin.num_params << ", not " << arguments.size() << "\n";
+			mw::MessageWindow::getInstance().print("Invalid input. Function '" + funcIt->second.GetName() + "' expected param count " + std::to_string(funcIt->second.GetParams().size() + funcIt->second.builtin.num_params) + ", not " + std::to_string(arguments.size()) + "\n");
 			return INVALID_INPUT;
 		}
 		bool error = false;
@@ -170,7 +173,7 @@ namespace func {
 		return SUCCESS;
 	}
 
-#define check_depth(d,func_name,ret_bool) if (d >= MAX_DEPTH) { std::cerr << "Reached MAX_DEPTH (" << MAX_DEPTH << ") in '" << func_name << "'; check for recursive variable reference.\n"; ret_bool = true;}
+#define check_depth(d,func_name,ret_bool) if (d >= MAX_DEPTH) { std::cerr << "Reached MAX_DEPTH (" << MAX_DEPTH << ") in '" << func_name << "'; check for recursive variable reference.\n"; mw::MessageWindow::getInstance().print("Reached MAX_DEPTH (" + std::to_string(MAX_DEPTH) + ") in '" + func_name + "'; check for recursive variable reference.\n"); ret_bool = true;}
 
 	// left hand slice tokenized string, i.e. without =
 	// returns index of func with params or -1 on fail

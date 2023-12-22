@@ -17,32 +17,50 @@
 #include <limits>
 #include <functional>
 #include <conio.h>
-
-
-
+#include "MessageWindow.h"
 
 #define LAST_VALUE "!"
-#define WINDOW_WIDTH 2000
+#define WINDOW_WIDTH 3000
 #define WINDOW_HEIGHT 2000
+#define MW_WIDTH 1000
+#define MW_HEIGHT 2000
+#define MW_X 0
+#define MW_Y 0
+#define GRAPH_WIDTH 2000
+#define GRAPH_HEIGHT 2000
+#define GRAPH_X 1000
+#define GRAPH_Y 0
 #define MAX_INPUT_CHARS 256
 #define TARGET_FPS 60
 
-void empty_func(void){}
+void empty_func(void) {}
 class Calculator
 {
 private:
 	std::vector<std::string> history;
 	std::vector<std::string> future;
+	std::vector<std::string> input_history;
+	mw::MessageWindow& message_window = mw::MessageWindow::getInstance();
+	std::streambuf* coutBuf;
 
 public:
-	Calculator() {}
-	~Calculator() { }
+	Calculator() 
+	{
+		message_window.set_loc(MW_X, MW_Y);
+		message_window.set_width(MW_WIDTH);
+		message_window.set_height(MW_HEIGHT);
+	}
+	~Calculator() 
+	{		
+
+	}
 	void clear()
 	{
 		//history.clear();
 		//future.clear();
 		internal_graph.clear();
 	}
+
 	void parse_expr(std::string input)
 	{
 		int found_eq = -1;
@@ -69,6 +87,7 @@ public:
 					std::string tmp(i, ' ');
 					tmp.append("^");
 					std::cerr << "Invalid input. Parenthesis not closed.\n" << input << "\n" << tmp << "\n";
+					mw::MessageWindow::getInstance().print("Invalid input. Parenthesis not closed.\n" + input + "\n" + tmp + "\n");
 					return;
 				}
 				break;
@@ -78,6 +97,7 @@ public:
 					std::string tmp(i, ' ');
 					tmp.append("^");
 					std::cerr << "Invalid input. Unexpected comma.\n" << input << "\n" << tmp << "\n";
+					mw::MessageWindow::getInstance().print("Invalid input. Unexpected comma.\n" + input + "\n" + tmp + "\n");
 					return;
 				}
 				break;
@@ -96,6 +116,7 @@ public:
 				std::string tmp(l_index, ' ');
 				tmp.append("^");
 				std::cerr << "Invalid input. Parenthesis not closed 1.\n" << input << "\n" << tmp << "\n";
+				mw::MessageWindow::getInstance().print("Invalid input. Parenthesis not closed 1.\n" + input + "\n" + tmp + "\n");
 				return;
 			}
 			else
@@ -103,6 +124,7 @@ public:
 				std::string tmp(r_index, ' ');
 				tmp.append("^");
 				std::cerr << "Invalid input. Parenthesis not opened 1.\n" << input << "\n" << tmp << "\n";
+				mw::MessageWindow::getInstance().print("Invalid input. Parenthesis not opened 1.\n" + input + "\n" + tmp + "\n");
 				return;
 			}
 		}
@@ -128,6 +150,7 @@ public:
 			if (tok_vec.at(0).GetType() != tok::FUNCTION)
 			{
 				std::cerr << "Invalid value before '=' (func name cannot be number or operator).\n";
+				mw::MessageWindow::getInstance().print("Invalid value before '=' (func name cannot be number or operator).\n");
 				return;
 			}
 			std::string func_name = tok_vec.at(0).GetName();
@@ -135,6 +158,7 @@ public:
 			if ((it != func::table.end() && it->second.builtin.available) || func_name == LAST_VALUE)
 			{
 				std::cerr << "Invalid input. Cannot overwrite builtin function '" << func_name << "'.\n";
+				mw::MessageWindow::getInstance().print("Invalid input. Cannot overwrite builtin function '" + func_name + "'.\n");
 				return;
 			}
 			std::vector<tok::OpToken> expr_vec(tok_vec.begin() + found_eq + 1, tok_vec.end());
@@ -151,17 +175,20 @@ public:
 						param_vec.end());
 				tok::OpToken func = tok_vec.at(0);
 				std::cout << "Input: " << tok::vectostr(tok_vec) << "\nParams:" << tok::vectostr(param_vec) << "\nExpr:" << tok::vectostr(expr_vec) << "\n\n";
+				mw::MessageWindow::getInstance().print("Input: " + tok::vectostr(tok_vec) + "\nParams:" + tok::vectostr(param_vec) + "\nExpr:" + tok::vectostr(expr_vec) + "\n\n");
 				for (tok::OpToken param : param_vec)
 				{
 					auto type = param.GetType();
 					if (type != tok::FUNCTION)
 					{
 						std::cerr << "Invalid input. All parameters must be functions (variables).\n";
+						mw::MessageWindow::getInstance().print("Invalid input. All parameters must be functions (variables).\n");
 						return;
 					}
 					if (param.GetName() == func_name)
 					{
 						std::cerr << "Invalid input. Parameter name cannot be same as the name of the function it is in.\n";
+						mw::MessageWindow::getInstance().print("Invalid input. Parameter name cannot be same as the name of the function it is in.\n");
 						return;
 					}
 				}
@@ -170,6 +197,7 @@ public:
 			else
 			{
 				std::cout << "\nInput: " << tok::vectostr(tok_vec) << "\nParams : " << tok::vectostr(empty_vec) << "\nExpr : " << tok::vectostr(expr_vec) << "\n";
+				mw::MessageWindow::getInstance().print("Input: " + tok::vectostr(tok_vec) + "\nParams:" + tok::vectostr(empty_vec) + "\nExpr:" + tok::vectostr(expr_vec) + "\n\n");
 				func::table[func_name] = func::Function(func_name, empty_vec, expr_vec);
 			}
 		}
@@ -181,6 +209,7 @@ public:
 			if (error)
 			{
 				std::cout << "Error parsing expression:'" << input << "'\n";
+				mw::MessageWindow::getInstance().print("Error parsing expression:'" + input + "'\n");
 				return;
 			}
 			std::string tmp = "";
@@ -193,6 +222,7 @@ public:
 			cmn::value n = rpn::eval(collapsed);
 			func::table[LAST_VALUE] = func::Function(LAST_VALUE, empty_vec, { tok::OpToken(n) });
 			std::cout << n << " = " << input << tmp << "\n";
+			message_window.print(std::to_string(n) + " = " + input + tmp);
 		}
 	}
 	// window and terminal input
@@ -213,6 +243,9 @@ public:
 					{
 						std::cout << "\n";
 						history.push_back(ret);
+						input_history.push_back(ret);
+						message_window.add_message(ret);
+						message_window.replace_back(" ");
 						return ret;
 					}
 
@@ -225,6 +258,7 @@ public:
 							// Redraw the entire line
 							std::cout << "\rInput expression: " << ret << ' ';
 							std::cout << "\rInput expression: " << std::string(ret.begin(), ret.begin() + cursor);
+							message_window.replace_back(ret);
 						}
 					}
 					else if (ch == -32) // Special keys (like arrow keys)
@@ -244,6 +278,7 @@ public:
 								// Move cursor back to correct position
 								cursor = ret.size();
 								std::cout << "\rInput expression: " << std::string(ret.begin(), ret.end());
+								message_window.replace_back(ret);
 							}
 							break;
 						case 80: // Down arrow
@@ -269,6 +304,7 @@ public:
 							// Redraw the line with the new input
 							std::cout << "\rInput expression: " << ret;
 							// Redraw the entire line with the new input
+							message_window.replace_back(ret);
 							break;
 						}
 						case 75: // Left arrow
@@ -276,6 +312,7 @@ public:
 							{
 								cursor--;
 								std::cout << "\b";
+								message_window.set_cursor(cursor);
 							}
 							break;
 						case 77: // Right arrow
@@ -283,6 +320,7 @@ public:
 							{
 								std::cout << ret[cursor];
 								cursor++;
+								message_window.set_cursor(cursor);
 							}
 							break;
 						}
@@ -295,6 +333,7 @@ public:
 						std::cout << "\rInput expression: " << ret;
 						// Move cursor back to correct position
 						std::cout << "\rInput expression: " << std::string(ret.begin(), ret.begin() + cursor);
+						message_window.replace_back(ret);
 					}
 				}
 				key = GetCharPressed();
@@ -306,6 +345,7 @@ public:
 						std::cout << "\rInput expression: " << ret;
 						// Move cursor back to correct position
 						std::cout << "\rInput expression: " << std::string(ret.begin(), ret.begin() + cursor);
+						message_window.replace_back(ret);
 					}
 					key = GetCharPressed();
 				}
@@ -319,11 +359,14 @@ public:
 						// Redraw the entire line
 						std::cout << "\rInput expression: " << ret << ' ';
 						std::cout << "\rInput expression: " << std::string(ret.begin(), ret.begin() + cursor);
+						message_window.replace_back(ret);
 					}
 				}
 				else if (IsKeyPressed(KEY_ENTER)) {
 					history.push_back(ret);
 					std::cout << "\n";
+					message_window.add_message(ret);
+					message_window.replace_back(" ");
 					return ret;  // Return the input when Enter is pressed
 
 				}
@@ -339,6 +382,7 @@ public:
 						// Move cursor back to correct position
 						cursor = ret.size();
 						std::cout << "\rInput expression: " << std::string(ret.begin(), ret.end());
+						message_window.replace_back(ret);
 					}
 				}
 				else if (IsKeyPressed(KEY_DOWN)) // Down arrow
@@ -363,6 +407,7 @@ public:
 
 					// Redraw the line with the new input
 					std::cout << "\rInput expression: " << ret;
+					message_window.replace_back(ret);
 				}
 				else if (IsKeyPressed(KEY_LEFT)) // Left arrow
 				{
@@ -370,6 +415,7 @@ public:
 					{
 						cursor--;
 						std::cout << "\b";
+						message_window.set_cursor(cursor);
 					}
 				}
 				else if (IsKeyPressed(KEY_RIGHT)) // Right arrow
@@ -378,9 +424,10 @@ public:
 					{
 						std::cout << ret[cursor];
 						cursor++;
+						message_window.set_cursor(cursor);
 					}
 				}
-				optional_func();
+				update_graph();
 			}
 		else
 		{
@@ -388,6 +435,7 @@ public:
 			std::cout << "\n";
 		}
 		history.push_back(ret);
+		input_history.push_back(ret);
 		return ret;
 	}
 
@@ -499,46 +547,27 @@ public:
 
 	void input_loop()
 	{
-		//auto input_future = std::async(std::launch::async, [&]() {
-		//	std::string input;
-		//	std::cout << "\nInput expression: ";
-		//	std::getline(std::cin, input);
-		//	std::cout << "\n";
-		//	return input;
-		//	});
 
 		while (1)
 		{
 			update_graph();
-			// Check if input is ready
-			//if (input_future.wait_for(std::chrono::milliseconds(0)) == std::future_status::ready) {
-			//	std::string input = input_future.get();
 			std::string input = get_input(std::bind(&Calculator::update_graph, this));
 
 			handle_input(input);
 
-				// Prepare for the next input
-			//	input_future = std::async(std::launch::async, [&]() {
-			//		std::string new_input;
-			//		std::cout << "\nInput expression: ";
-			//		std::getline(std::cin, new_input);
-			//		std::cout << "\n";
-			//		return new_input;
-			//		});
-			//}
-
-			// Sleep for a short duration to reduce CPU usage
-			/*std::this_thread::sleep_for(std::chrono::milliseconds(10));*/
 		}
 	}
+
 	void plot(plot::Graph graph, std::string name)
 	{
 		if (!window_open) start_window();
 		internal_graph = graph;
 		internal_graph_name = name;
+		message_window.bg_color = internal_graph.get_bgcolor();
 		BeginDrawing();
 		ClearBackground(internal_graph.get_bgcolor());
 		internal_graph.draw();
+		message_window.draw();
 		// Draw points
 		EndDrawing();
 	}
@@ -593,16 +622,7 @@ public:
 		return std::make_pair(internal_graph.get_y_start(), internal_graph.get_y_end());
 	}
 
-	void set_threshold(double threshold)
-	{
-		this->threshold = threshold;
-	}
-
-	double get_threshold()
-	{
-		return threshold;
-	}
-	std::pair<double,double> get_precision()
+	std::pair<double, double> get_precision()
 	{
 		return std::make_pair(internal_graph.precision_x(), internal_graph.precision_y());
 	}
@@ -620,14 +640,13 @@ public:
 		++plot_color_iter; // Move to the next color
 		return color;
 	}
+
 	bool is_alternating()
 	{
 		return alternate;
 	}
 private:
 	bool alternate = false;
-
-	double threshold = 0.1;
 
 	bool window_open = false;
 
@@ -663,6 +682,7 @@ private:
 	{"raywhite", RAYWHITE},
 	{"blank", BLANK},
 	};
+
 	const std::map<std::string, Color> plot_color_map = {
 	{"red", RED},
 	{"blue", BLUE},
@@ -693,7 +713,6 @@ private:
 
 	std::map<std::string, Color>::const_iterator& plot_color_iter = plot_color_map.begin();
 
-
 	Color get_color(std::string input)
 	{
 		auto it = color_map.find(input);
@@ -701,7 +720,7 @@ private:
 			return it->second;
 		}
 		else {
-			return BLACK;
+			return internal_graph.get_bgcolor();
 		}
 	}
 
@@ -734,7 +753,7 @@ private:
 			std::cout << "Approximate map size: " << sizeInMB << " MB" << std::endl;
 		}
 	}
-	
+
 	void handle_input(std::string input)
 	{
 		if (input == "quit")
@@ -745,12 +764,14 @@ private:
 		else if (input == "table")
 		{
 			std::cout << func::tabletostr();
+			message_window.print(func::tabletostr() + "\n");
 			return;
 		}
 		else if (input.find("test ") == 0)
 		{
 			input.erase(input.begin(), input.begin() + 5);
 			test_parse_and_rpn(input, "", 0);
+			message_window.print("Tested '" + input + "'");
 			return;
 		}
 		else if (input == "dump")
@@ -762,6 +783,7 @@ private:
 		{
 			rpn::debug = !rpn::debug;
 			std::cout << "Debug mode " << (rpn::debug ? "enabled" : "disabled") << "\n";
+			message_window.print("Debug mode " + std::string(rpn::debug ? "enabled" : "disabled"));
 			return;
 		}
 		else if (input.find("setfg ") == 0)
@@ -784,7 +806,8 @@ private:
 			Color color = get_color(input);
 			internal_graph.set_gridcolor(color);
 			return;
-		}else if (input.find("setaxis ") == 0)
+		}
+		else if (input.find("setaxis ") == 0)
 		{
 			input.erase(input.begin(), input.begin() + 8);
 			Color color = get_color(input);
@@ -796,6 +819,7 @@ private:
 			for (auto it = color_map.begin(); it != color_map.end(); it++)
 			{
 				std::cout << it->first << "\n";
+				message_window.print(it->first);
 			}
 			return;
 		}
@@ -810,10 +834,10 @@ private:
 			std::map<plot::Point, Color> points;
 			for (auto it = map.begin(); it != map.end(); it++)
 			{
-				points.insert(std::make_pair<>(it->first.start,it->second));
+				points.insert(std::make_pair<>(it->first.start, it->second));
 				points.insert(std::make_pair<>(it->first.end, it->second));
 			}
-			print_map_capacity(points);
+			message_window.print(std::to_string(print_map_capacity(points)));
 			return;
 		}
 		else if (input == "clear")
@@ -843,6 +867,7 @@ private:
 			std::cout << "mem - print the approximate memory usage of the graph\n";
 			std::cout << "alternate - toggle alternating plot colors\n";
 			std::cout << "help - print this help message\n";
+			message_window.print("Commands:\nquit - quit the program\ntable - print the function table\ntest <expr> - test the parser and RPN sort on <expr>\ndump - dump the function table\ndebug - toggle debug mode\nsetfg <color> - set the foreground color\nsetbg <color> - set the background color\nsetgrid <color> - set the grid color\nsetaxis <color> - set the axis color\ncolors - print the available colors\nclear - clear the graph\nmem - print the approximate memory usage of the graph\nalternate - toggle alternating plot colors\nhelp - print this help message\n");
 			return;
 		}
 		parse_expr(input);
@@ -870,6 +895,7 @@ private:
 		InitWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "Graph");
 		SetTargetFPS(TARGET_FPS);
 		window_open = true;
+		message_window.load_monospace(500);
 	}
 
 	void update_graph()
@@ -880,5 +906,3 @@ private:
 	}
 
 };
-
-

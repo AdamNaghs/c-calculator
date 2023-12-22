@@ -16,7 +16,10 @@ namespace rpn
 		std::stack<tok::OpToken> ret;
 
 		if (debug)
+		{
 			std::cout << "Sorting: " << tok::vectostr(v) << '\n' << std::endl;
+			mw::MessageWindow::getInstance().print("Sorting: " + tok::vectostr(v) + '\n');
+		}
 
 		for (int i = 0; i < v.size();i++)
 		{
@@ -76,32 +79,41 @@ namespace rpn
 			if (debug)
 			{
 				std::cout << i << ": " << tok << '\n';
+				mw::MessageWindow::getInstance().print(std::to_string(i) + ": " + tok.toString() + '\n');
 				if (!ret.empty())
 				{
 					std::vector<tok::OpToken> tmp;
 					std::cout << "Ret: ";
+					mw::MessageWindow::getInstance().print("Ret: ");
 					for (auto dump = ret; !dump.empty(); dump.pop())
 						tmp.insert(tmp.begin(), dump.top());
 					for (auto t : tmp)
 					{
 						std::cout << t << " ";
+						mw::MessageWindow::getInstance().print(t.toString() + " ");
 					}
 					std::cout << '\n';
+					mw::MessageWindow::getInstance().print("\n");
 				}
 				else std::cout << "Ret: Empty\n";
+				mw::MessageWindow::getInstance().print("Ret: Empty\n");
 				if (!ops.empty())
 				{
 					std::cout << "Ops: ";
+					mw::MessageWindow::getInstance().print("Ops: ");
 					std::vector<tok::OpToken> tmp;
 					for (auto dump = ops; !dump.empty(); dump.pop())
 						tmp.insert(tmp.begin(), dump.top());
 					for (auto t : tmp)
 					{
 						std::cout << t << " ";
+						mw::MessageWindow::getInstance().print(t.toString() + " ");
 					}
 					std::cout << '\n';
+					mw::MessageWindow::getInstance().print("\n");
 				}
 				else std::cout << "Ops: Empty\n";
+				mw::MessageWindow::getInstance().print("Ops: Empty\n\n");
 
 				std::cout << std::endl;
 			}
@@ -134,6 +146,7 @@ namespace rpn
 				{
 					// functions are handled by collapse_functions before evaluation
 					std::cerr << "Invalid input. Function '" << token.GetName() <<"' not defined.\n";
+					mw::MessageWindow::getInstance().print("Invalid input. Function '" + token.GetName() + "' not defined.\n");
 					return 0;
 				}
 				operandStack.push(token.GetValue());
@@ -174,6 +187,7 @@ namespace rpn
 		{
 			not_enough_operands:
 			std::cerr << "Invalid input. Not enough operands, cannot solve expression.\n";
+			mw::MessageWindow::getInstance().print("Invalid input. Not enough operands, cannot solve expression.\n");
 			return 0;
 		}
 		return operandStack.top();
