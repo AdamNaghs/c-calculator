@@ -30,6 +30,7 @@ int check_param_types(std::vector<std::vector<tok::OpToken>> vec, std::vector<to
 }
 #define check_first_param_type(vec) if (vec[0][0].GetType() == tok::FUNCTION && func::table.find(vec[0][0].GetName()) == func::table.end()) {return vec[0][0];}
 
+#define POINT_THRESHOLD 0.125 // 15% of the y-axis range
 
 void load_builtin_functions(void)
 {
@@ -224,7 +225,7 @@ void load_builtin_functions(void)
 			std::cout << "{\n";
 			double y_axis_range = calc.get_graph().get_y_end() - calc.get_graph().get_y_start();
 			// Set the threshold as a small percentage of the y-axis range
-			const double threshold = 0.05 * y_axis_range; // Example: 5% of the y-axis range
+			const double threshold = POINT_THRESHOLD * y_axis_range; // Example: 5% of the y-axis range
 
 			#pragma omp parallel for
 			for (double n = start; (start > end) ? (n > end) : (n < end); n += (start > end) ? (-step) : (step))
@@ -286,7 +287,7 @@ void load_builtin_functions(void)
 			bool first = true;
 			double y_axis_range = calc.get_graph().get_y_end() - calc.get_graph().get_y_start();
 			// Set the threshold as a small percentage of the y-axis range
-			const double threshold = 0.05 * y_axis_range; // Example: 5% of the y-axis range
+			const double threshold = POINT_THRESHOLD * y_axis_range; // Example: 5% of the y-axis range
 
 			if (rpn::debug)
 			{
@@ -367,7 +368,7 @@ void load_builtin_functions(void)
 			bool first = true;
 			double x_axis_range = calc.get_graph().get_x_end() - calc.get_graph().get_x_start();
 			// Set the threshold as a small percentage of the y-axis range
-			const double threshold = 0.05 * x_axis_range; // Example: 5% of the y-axis range
+			const double threshold = POINT_THRESHOLD * x_axis_range; // Example: 5% of the y-axis range
 
 			if (rpn::debug)
 			{

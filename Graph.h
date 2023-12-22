@@ -37,10 +37,6 @@ namespace plot
 		}
 	};
 
-	bool is_continous(const plot::Point& p1, const plot::Point& p2, double threshold = 1e6) {
-		return std::abs(p1.y - p2.y) < threshold;
-	}
-
 	class LineSegment {
 	public:
 		Point start;

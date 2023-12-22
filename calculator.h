@@ -237,7 +237,7 @@ public:
 							if (!history.empty())
 							{
 								future.push_back(ret);
-								std::cout << std::string(MAX_INPUT_CHARS - ret.length(), ' ') << std::string(MAX_INPUT_CHARS - ret.length(), '\b'); // Clear the line
+								std::cout << "\rInput expression: " << std::string(ret.length() * 2, ' ') << std::string(ret.length() * 2, '\b'); // Clear the line
 								ret = history.back();
 								history.pop_back();
 								// Redraw the entire line
@@ -247,24 +247,30 @@ public:
 							}
 							break;
 						case 80: // Down arrow
-							if (!future.empty())
-							{
+						{
+							// Save the current length for clearing the line
+							int oldLength = ret.length() * 2;
+
+							if (!future.empty()) {
 								history.push_back(ret);
-								std::cout << std::string(MAX_INPUT_CHARS - ret.length(), ' ') << std::string(MAX_INPUT_CHARS - ret.length(), '\b'); // Clear the line
 								ret = future.back();
 								future.pop_back();
-								cursor = ret.size(); // Set cursor to the end of the new string
-								std::cout << "\rInput expression: " << std::string(ret.begin(), ret.end());
 							}
-							else
-							{
+							else {
 								ret.clear(); // Clear the current input if there's nothing in the future
-								cursor = 0;
-								std::cout << std::string(MAX_INPUT_CHARS - ret.length(), ' ') << std::string(MAX_INPUT_CHARS - ret.length(), '\b'); // Clear the line
-								std::cout << "\rInput expression: " << ret; // Print the new input
 							}
+
+							cursor = ret.size(); // Set cursor to the end of the new string
+							int max = std::max(oldLength, (int)ret.length() * 2);
+
+							// Clear the line: Print enough spaces to cover the old string and move cursor back
+							std::cout << "\rInput expression: " << std::string(max, ' ') << std::string(max, '\b'); // Clear the line
+
+							// Redraw the line with the new input
+							std::cout << "\rInput expression: " << ret;
 							// Redraw the entire line with the new input
 							break;
+						}
 						case 75: // Left arrow
 							if (cursor > 0)
 							{
@@ -326,7 +332,7 @@ public:
 					if (!history.empty())
 					{
 						future.push_back(ret);
-						std::cout << "\rInput expression: " << std::string(ret.length(), ' ') << std::string(ret.length(), '\b'); // Clear the line
+						std::cout << "\rInput expression: " << std::string(ret.length() * 2, ' ') << std::string(ret.length() * 2, '\b'); // Clear the line
 						ret = history.back();
 						history.pop_back();
 						// Redraw the entire line
@@ -337,25 +343,26 @@ public:
 				}
 				else if (IsKeyPressed(KEY_DOWN)) // Down arrow
 				{
-					if (!future.empty())
-					{
+					// Save the current length for clearing the line
+					int oldLength = ret.length() * 2;
+
+					if (!future.empty()) {
 						history.push_back(ret);
-						std::cout << std::string(MAX_INPUT_CHARS - ret.length(), ' ') << std::string(MAX_INPUT_CHARS - ret.length(), '\b'); // Clear the line
 						ret = future.back();
 						future.pop_back();
-						cursor = ret.size(); // Set cursor to the end of the new string
-						std::cout << "\rInput expression: " << std::string(ret.begin(), ret.end());
 					}
-					else
-					{
-						int tmp = cursor;
+					else {
 						ret.clear(); // Clear the current input if there's nothing in the future
-						cursor = 0;
-						std::cout << std::string(MAX_INPUT_CHARS - ret.length(), ' ') << std::string(MAX_INPUT_CHARS - ret.length(), '\b'); // Clear the line
-						std::cout << "\rInput expression: " << ret << std::flush; // Print the new input
 					}
-					// Redraw the entire line with the new input
 
+					cursor = ret.size(); // Set cursor to the end of the new string
+					int max = std::max(oldLength, (int)ret.length() * 2);
+
+					// Clear the line: Print enough spaces to cover the old string and move cursor back
+					std::cout << "\rInput expression: " << std::string(max, ' ') << std::string(max, '\b'); // Clear the line
+
+					// Redraw the line with the new input
+					std::cout << "\rInput expression: " << ret;
 				}
 				else if (IsKeyPressed(KEY_LEFT)) // Left arrow
 				{
