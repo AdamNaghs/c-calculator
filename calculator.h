@@ -701,7 +701,7 @@ private:
 			return it->second;
 		}
 		else {
-			return BLACK;
+			return internal_graph.get_bgcolor();
 		}
 	}
 
