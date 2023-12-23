@@ -229,6 +229,7 @@ public:
 	std::string get_input(std::function<void()> optional_func = empty_func)
 	{
 		int cursor = 0;
+		int cursory = 0;
 		std::string ret;
 		std::cout << "\nInput expression: ";
 		volatile int key;
@@ -279,6 +280,7 @@ public:
 								cursor = ret.size();
 								std::cout << "\rInput expression: " << std::string(ret.begin(), ret.end());
 								message_window.replace_back(ret);
+								message_window.set_cursor(cursor);
 							}
 							break;
 						case 80: // Down arrow
@@ -305,6 +307,7 @@ public:
 							std::cout << "\rInput expression: " << ret;
 							// Redraw the entire line with the new input
 							message_window.replace_back(ret);
+							message_window.set_cursor(cursor);
 							break;
 						}
 						case 75: // Left arrow
@@ -334,6 +337,7 @@ public:
 						// Move cursor back to correct position
 						std::cout << "\rInput expression: " << std::string(ret.begin(), ret.begin() + cursor);
 						message_window.replace_back(ret);
+						message_window.set_cursor(cursor);
 					}
 				}
 				key = GetCharPressed();
@@ -346,6 +350,7 @@ public:
 						// Move cursor back to correct position
 						std::cout << "\rInput expression: " << std::string(ret.begin(), ret.begin() + cursor);
 						message_window.replace_back(ret);
+						message_window.set_cursor(cursor);
 					}
 					key = GetCharPressed();
 				}
@@ -367,6 +372,7 @@ public:
 					std::cout << "\n";
 					message_window.add_message(ret);
 					message_window.replace_back(" ");
+
 					return ret;  // Return the input when Enter is pressed
 
 				}
@@ -383,6 +389,7 @@ public:
 						cursor = ret.size();
 						std::cout << "\rInput expression: " << std::string(ret.begin(), ret.end());
 						message_window.replace_back(ret);
+						message_window.set_cursor(cursor);
 					}
 				}
 				else if (IsKeyPressed(KEY_DOWN)) // Down arrow
@@ -407,7 +414,9 @@ public:
 
 					// Redraw the line with the new input
 					std::cout << "\rInput expression: " << ret;
+					// Redraw the entire line with the new input
 					message_window.replace_back(ret);
+					message_window.set_cursor(cursor);
 				}
 				else if (IsKeyPressed(KEY_LEFT)) // Left arrow
 				{

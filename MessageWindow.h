@@ -70,7 +70,7 @@ namespace mw
 			}
 		}
 
-		void draw() {
+		void draw1() {
 			DrawRectangle(locx, locy, width, height, bg_color);
 
 			// Start Y position from the top of the message window
@@ -88,6 +88,7 @@ namespace mw
 
 				// Check if the message fits vertically in the window
 				if (currentY < locy) {
+
 					break; // Stop drawing if there is no more vertical space
 				}
 
@@ -102,6 +103,45 @@ namespace mw
 					}
 			}
 		}
+		void draw() {
+			DrawRectangle(locx, locy, width, height, bg_color);
+
+			int currentY = locy + height;
+			std::vector<std::string>::reverse_iterator it = messages.rbegin();
+			std::vector<int> indicesToRemove;
+
+			while (it != messages.rend()) {
+				std::string message = *it;
+				if (message.empty()) message = " ";
+
+				int fontSize = font_size(message);
+				Vector2 textSize = MeasureTextEx(font, message.c_str(), fontSize, spacing);
+
+				currentY -= (int)textSize.y + 2;
+
+				if (currentY < locy) {
+					indicesToRemove.push_back(std::distance(it, messages.rend()) - 1);
+					++it;
+					continue;
+				}
+
+				Vector2 textPosition = { locx, (float)currentY };
+				DrawTextEx(font, message.c_str(), textPosition, fontSize, spacing, text_color);
+
+				if (it == messages.rbegin() && cursor >= 0 && cursor <= message.length()) {
+					Vector2 cursorPosition = { locx + MeasureTextEx(font, message.substr(0, cursor).c_str(), fontSize, spacing).x, (float)currentY };
+					DrawLineV(cursorPosition, { cursorPosition.x, cursorPosition.y + textSize.y }, cursor_color);
+				}
+
+				++it;
+			}
+
+			// Remove messages that are outside the drawing area
+			for (int index : indicesToRemove) {
+				messages.erase(messages.begin() + index);
+			}
+		}
+
 
 		void replace_back(std::string message)
 		{
