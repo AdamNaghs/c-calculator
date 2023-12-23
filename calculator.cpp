@@ -393,13 +393,16 @@ void load_builtin_functions(void)
 			{
 				if (expr_vec[i].GetType() == tok::FUNCTION && expr_vec[i].GetName() == var_vec[0].GetName()) idxs.emplace_back(i);
 			}
+			for (int i = 0; i < 2; i++)
+			{
+				rpn::sort(s[i]);
+				s[i][0] = tok::OpToken(rpn::eval(s[i]));
+			}
 			cmn::value ret = 0;
-			rpn::sort(s[0]);
-			rpn::sort(s[1]);
 			cmn::value start = s[0][0].GetValue();
 			cmn::value end = s[1][0].GetValue();
 			double step = calc.get_precision().first;
-			std::string name = "plot_add(";
+			std::string name = "plot_addr(";
 			for (auto& v : s)
 			{
 				name.append(tok::vectostr(v) + ",");
@@ -490,7 +493,7 @@ void load_builtin_functions(void)
 			cmn::value start = pair.first;
 			cmn::value end = pair.second;
 			double step = calc.get_precision().first;
-			std::string name = "plot_add(";
+			std::string name = "plot_addx(";
 			for (auto& v : s)
 			{
 				name.append(tok::vectostr(v) + ",");
@@ -561,7 +564,7 @@ void load_builtin_functions(void)
 			std::cout << "Plot took " << duration.count() << "ms\n";
 			mw::MessageWindow::getInstance().print("Plot took " + std::to_string(duration.count()) + "ms\n");
 			return tok::OpToken(ret);
-		});	func::add_builtin_func("plot_addrx", 4, [](std::vector<std::vector<tok::OpToken>> s)
+		});	func::add_builtin_func("plot_addxr", 4, [](std::vector<std::vector<tok::OpToken>> s)
 		{
 			auto start_time = std::chrono::high_resolution_clock::now();
 			std::vector<size_t> idxs;
@@ -574,13 +577,16 @@ void load_builtin_functions(void)
 					idxs.emplace_back(i);
 				}
 			}
+			for (int i = 0; i < 2; i++)
+			{
+				rpn::sort(s[i]);
+				s[i][0] = tok::OpToken(rpn::eval(s[i]));
+			}
 			cmn::value ret = 0;
-			rpn::sort(s[0]);
-			rpn::sort(s[1]);
 			cmn::value start = s[0][0].GetValue();
 			cmn::value end = s[1][0].GetValue();
 			double step = calc.get_precision().first;
-			std::string name = "plot_add(";
+			std::string name = "plot_addxr(";
 			for (auto& v : s)
 			{
 				name.append(tok::vectostr(v) + ",");
@@ -705,6 +711,7 @@ void load_builtin_functions(void)
 int main(void)
 {
 	load_builtin_functions();
+	calc.alternate_colors();
 	calc.parse_expr("plot(-1 * pi,pi,-1,1,n,cos(n))");
 	calc.parse_expr("plot_add(x,x)");
 	calc.parse_expr("list(0,5,x,cos(x))");
