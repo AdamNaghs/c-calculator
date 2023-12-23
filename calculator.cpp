@@ -32,6 +32,7 @@ int check_param_types(std::vector<std::vector<tok::OpToken>> vec, std::vector<to
 
 #define POINT_THRESHOLD 0.125 // 15% of the y-axis range
 
+// on error builtin functions return the token that caused the error
 void load_builtin_functions(void)
 {
 	func::add_builtin_func("pi", 0, [](std::vector<std::vector<tok::OpToken>> s)
@@ -149,6 +150,10 @@ void load_builtin_functions(void)
 			for (int i = 0; i < s[3].size(); i++)
 			{
 				if (s[3][i].GetType() == tok::FUNCTION && s[2][0].GetType() == tok::FUNCTION && s[3][i].GetName() == s[2][0].GetName()) idxs.emplace_back(i);
+			}
+			for (auto t : expr_vec)
+			{
+				if (t.GetType() == tok::FUNCTION && t.GetName() != s[2][0].GetName() && func::table.find(t.GetName()) == func::table.end()) return t;
 			}
 			cmn::value ret = 0;
 			for (size_t n = (size_t)start; (start > end) ? (n > end) : (n < end);(start > end) ? (n--) : (n++))
@@ -308,7 +313,7 @@ void load_builtin_functions(void)
 				if (expr_vec[i].GetType() == tok::FUNCTION && expr_vec[i].GetName() == var_vec[0].GetName()) idxs.emplace_back(i);
 			}
 			cmn::value ret = 0;
-			auto pair = calc.get_y_axis();
+			auto pair = calc.get_x_axis();
 			cmn::value start = pair.first;
 			cmn::value end = pair.second;
 			double step = calc.get_precision().first;
@@ -320,9 +325,9 @@ void load_builtin_functions(void)
 			name.append("\b)");
 			plot::Point last;
 			bool first = true;
-			double y_axis_range = calc.get_graph().get_y_end() - calc.get_graph().get_y_start();
-			// Set the threshold as a small percentage of the y-axis range
-			const double threshold = POINT_THRESHOLD * y_axis_range; // Example: 5% of the y-axis range
+			double x_axis_range = abs(calc.get_graph().get_x_end()) + abs(calc.get_graph().get_x_start());
+			// Set the threshold as a small percentage of the x-axis range
+			const double threshold = POINT_THRESHOLD * x_axis_range; // Example: 5% of the x-axis range
 
 			if (rpn::debug)
 			{
@@ -340,22 +345,11 @@ void load_builtin_functions(void)
 					expr_copy[idx] = tok::OpToken((cmn::value)n);
 				}
 				bool error = false;
-				bool ran = false;
-				std::vector<tok::OpToken> collapse;//= func::collapse_function(expr_copy, error);
-				for (auto& v : expr_copy)
-				{
-					if (v.GetType() == tok::FUNCTION)
-					{
-						collapse = func::collapse_function(expr_copy, error);
-						ran = true;
-						break;
-					}
-				}
+				std::vector<tok::OpToken> collapse = func::collapse_function(expr_copy, error);
 				if (error)
 				{
 					return tok::OpToken(0);
 				}
-				if (!ran) collapse = expr_copy;
 				rpn::sort(collapse);
 				ret = rpn::eval(collapse);
 				plot::Point tmp = plot::Point(n, ret);
@@ -501,9 +495,9 @@ void load_builtin_functions(void)
 			name.append("\b)");
 			plot::Point last;
 			bool first = true;
-			double x_axis_range = calc.get_graph().get_x_end() - calc.get_graph().get_x_start();
+			double y_axis_range = abs(calc.get_graph().get_y_end()) + abs(calc.get_graph().get_y_start());
 			// Set the threshold as a small percentage of the y-axis range
-			const double threshold = POINT_THRESHOLD * x_axis_range; // Example: 5% of the y-axis range
+			const double threshold = POINT_THRESHOLD * y_axis_range; // Example: 5% of the y-axis range
 
 			if (rpn::debug)
 			{
@@ -712,6 +706,13 @@ int main(void)
 {
 	load_builtin_functions();
 	calc.alternate_colors();
+	calc.parse_expr("plot(-10,10,-1,1,n,sin(n)/n)");
+	calc.parse_expr("plot_add(n,1 + n + sum(2,100,x,(n^x)/fact(x)))"); // graph of e^x
+	calc.parse_expr("plot_add(x,sum(0,100,n,(x^n)/fact(n)))"); // graph of e^x
+	calc.input_loop();
+	calc.parse_expr("plot_add(n,sin(n)/n * -1)");
+	calc.parse_expr("plot_addx(n,sin(n)/n * -1)");
+
 	calc.parse_expr("plot(-1 * pi,pi,-1,1,n,cos(n))");
 	calc.parse_expr("plot_add(x,x)");
 	calc.parse_expr("list(0,5,x,cos(x))");
@@ -785,7 +786,7 @@ int main(void)
 	calc.parse_expr("plot_addx(n,tan(n))");
 	//calc.parse_expr("plot(-1000,1000,0,100,x,ln(x))");
 
-	calc.input_loop();
+	
 
 	//func::dump_table();
 	return 0;

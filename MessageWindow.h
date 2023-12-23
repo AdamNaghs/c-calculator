@@ -13,7 +13,7 @@ namespace mw
 		std::vector<std::string> messages;
 		Font font;
 		int spacing = 5;
-		Color cursor_color = RED;
+		Color cursor_color = SKYBLUE;
 		Color text_color = WHITE;
 		Color bg_color = BLACK;
 
@@ -140,6 +140,7 @@ namespace mw
 			for (int index : indicesToRemove) {
 				messages.erase(messages.begin() + index);
 			}
+			DrawLine(locx + width, locy, locx + width, locy + height, cursor_color);
 		}
 
 
