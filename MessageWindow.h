@@ -75,7 +75,7 @@ namespace mw
 		}
 
 		void draw() {
-			DrawRectangle(locx, locy, width, height, bg_color);
+			DrawRectangle(locx, locy, width + locx, height + locy, bg_color);
 
 			int currentY = locy + height;
 			std::vector<std::string>::reverse_iterator it = messages.rbegin();

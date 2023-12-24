@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include <map>
+#include <unordered_map>
 #include <cmath>
 #include <raylib.h>
 #include "common.h"
@@ -34,6 +35,7 @@ namespace plot
 		}
 	};
 
+
 	class LineSegment {
 	public:
 		Point start;
@@ -42,28 +44,50 @@ namespace plot
 		LineSegment(const Point& start, const Point& end) : start(start), end(end) {}
 
 		bool operator<(const LineSegment& other) const {
-			if (start != other.start) return start < other.start;
-			return end < other.end;
+			return end < other.end || start < other.start;
+		}
+		bool operator==(const LineSegment& other) const {
+			return (start == other.start && end == other.end);
+		}
+		bool operator<=(const LineSegment& other) const {
+			return (*this < other || *this == other);
 		}
 
 	};
 
-	std::map<LineSegment, Color> make_line_map(const std::map<Point, Color>& points) {
-		std::map<LineSegment, Color> lineSegments;
-
-		if (points.empty()) {
-			return lineSegments;
+	struct PointHash {
+		std::size_t operator()(const Point& p) const {
+			std::size_t h1 = std::hash<double>()(p.x);
+			std::size_t h2 = std::hash<double>()(p.y);
+			// The magic number below is a large prime number
+			return h1 ^ (h2 * 0x9e3779b9 + (h1 << 6) + (h1 >> 2));
 		}
+	};
 
-		auto last = points.begin();
-		for (auto it = std::next(points.begin()); it != points.end(); ++it) {
-			LineSegment l(last->first, it->first);
-			lineSegments[l] = last->second;
-			last = it;
+	struct LineSegmentHash {
+		std::size_t operator()(const LineSegment& ls) const {
+			PointHash pointHasher;
+			std::size_t h1 = pointHasher(ls.start);
+			std::size_t h2 = pointHasher(ls.end);
+			return h1 ^ (h2 * 0x9e3779b9 + (h1 << 6) + (h1 >> 2)); // Combine the hash values
 		}
+	};
+	//std::map<LineSegment, Color> make_line_map(const std::map<Point, Color>& points) {
+	//	std::map<LineSegment, Color> lineSegments;
 
-		return lineSegments;
-	}
+	//	if (points.empty()) {
+	//		return lineSegments;
+	//	}
+
+	//	auto last = points.begin();
+	//	for (auto it = std::next(points.begin()); it != points.end(); ++it) {
+	//		LineSegment l(last->first, it->first);
+	//		lineSegments[l] = last->second;
+	//		last = it;
+	//	}
+
+	//	return lineSegments;
+	//}
 
 	class Graph
 	{
@@ -100,11 +124,8 @@ namespace plot
 
 		void add_line(LineSegment line)
 		{
-			//if (!is_in_range(line.start) || !is_in_range(line.end)) return;
 			lines[line] = fgcolor;
 		}
-
-		
 
 		bool is_in_range(Point p)
 		{
@@ -211,7 +232,12 @@ namespace plot
 			this->fgcolor = color;
 		}
 
-		std::map<LineSegment, Color> get_lines()
+		/*std::map<LineSegment, Color> get_lines()
+		{
+			return lines;
+		}*/
+		
+		std::unordered_map<LineSegment, Color,LineSegmentHash> get_lines()
 		{
 			return lines;
 		}
@@ -333,7 +359,8 @@ namespace plot
 			int start, end;
 		} x_axis, y_axis;
 		//std::map<plot::Point, Color> points;
-		std::map<LineSegment,Color> lines;
+		std::unordered_map<LineSegment,Color,LineSegmentHash> lines;
+		//std::map<LineSegment,Color> lines;
 		//std::vector<Point> normalized_points;
 		Color bgcolor;
 		Color fgcolor;

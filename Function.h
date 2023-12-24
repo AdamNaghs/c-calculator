@@ -39,7 +39,7 @@ namespace func {
 
 		std::vector<tok::OpToken> GetParams() { return param_names; }
 
-		tok::OpToken run_builtin(std::vector<std::vector<tok::OpToken>> v)
+		tok::OpToken run_builtin(std::vector<std::vector<tok::OpToken>>& v)
 		{
 			if (!builtin.available) 
 			{

@@ -35,11 +35,12 @@ namespace func {
 		arguments.reserve(argTokens.size());
 		currentArg.reserve(argTokens.size());
 		int parenDepth = 0;
-		//#pragma omp parallel
+		tok::TokenType t_type;
+		cmn::op t_op;
 		for (const auto& token : argTokens)
 		{
-			auto t_type = token.GetType();
-			auto t_op = token.GetOperator();
+			t_type = token.GetType();
+			t_op = token.GetOperator();
 			if (t_type == tok::TokenType::OPERATOR && t_op == cmn::op::L_PAREN)
 				parenDepth++;
 			else if (t_type == tok::TokenType::OPERATOR && t_op == cmn::op::R_PAREN)
@@ -68,9 +69,9 @@ namespace func {
 		return arguments;
 	}
 
-	std::vector<tok::OpToken> sub_params(std::vector<tok::OpToken> expr, std::vector<tok::OpToken> param_names, std::vector<std::vector<tok::OpToken>> v)
+	// v is a vector of vectors of tokens representing the arguments to a function
+	std::vector<tok::OpToken> sub_params(std::vector<tok::OpToken>& expr, std::vector<tok::OpToken> &param_names, std::vector<std::vector<tok::OpToken>>& v)
 	{
-		std::vector<int> func_idxs;
 		int i = 0;
 		int c = 0;
 		for (tok::OpToken name : param_names)

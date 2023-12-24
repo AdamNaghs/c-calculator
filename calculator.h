@@ -20,15 +20,15 @@
 #include "MessageWindow.h"
 
 #define LAST_VALUE "!"
-#define WINDOW_WIDTH 3000
-#define WINDOW_HEIGHT 2000
+#define WINDOW_WIDTH 2500
+#define WINDOW_HEIGHT 1500
 #define MW_WIDTH 1000
-#define MW_HEIGHT 2000
-#define MW_X 0
+#define MW_HEIGHT 1500
+#define MW_X 1500
 #define MW_Y 0
-#define GRAPH_WIDTH 2000
-#define GRAPH_HEIGHT 2000
-#define GRAPH_X 1000
+#define GRAPH_WIDTH 1500
+#define GRAPH_HEIGHT 1500
+#define GRAPH_X 0
 #define GRAPH_Y 0
 #define MAX_INPUT_CHARS 256
 #define TARGET_FPS 120
@@ -214,13 +214,20 @@ public:
 				return;
 			}
 			std::string tmp = "";
-			if (collapsed != tokens)
+			if (collapsed != tokens && collapsed.size() > 1)
 			{
 				std::string col_str = tok::vectostr(collapsed);
-				tmp.append(" = " + col_str);
+				if (col_str != input)
+					tmp.append(" = " + col_str);
+				//tmp.append(" = " + col_str);
 			}
 			rpn::sort(collapsed);
 			cmn::value n = rpn::eval(collapsed);
+			auto it = func::table.find(LAST_VALUE);
+			if (it != func::table.end())
+			{
+				func::table[it->second.GetName() + LAST_VALUE] = func::Function(it->second.GetName() + LAST_VALUE, empty_vec, it->second.GetExpr());
+			}
 			func::table[LAST_VALUE] = func::Function(LAST_VALUE, empty_vec, { tok::OpToken(n) });
 			std::cout << n << " = " << input << tmp << "\n";
 			message_window.print(std::to_string(n) + " = " + input + tmp);
@@ -564,6 +571,7 @@ public:
 		}
 	}
 
+	// for swapping graph and drawing
 	void plot(plot::Graph graph, std::string name)
 	{
 		if (!window_open) start_window();
@@ -579,9 +587,15 @@ public:
 		EndDrawing();
 	}
 
-	plot::Graph get_graph()
+	void draw()
 	{
-		return internal_graph;
+		if (!window_open) start_window();
+		BeginDrawing();
+		ClearBackground(internal_graph.get_bgcolor());
+		message_window.draw();
+		internal_graph.draw();
+		// Draw points
+		EndDrawing();
 	}
 
 	void add_line(plot::LineSegment line)
@@ -589,19 +603,19 @@ public:
 		internal_graph.add_line(line);
 	}
 
+	bool is_alternating()
+	{
+		return alternate;
+	}
+
 	bool is_plotting()
 	{
 		return window_open;
 	}
 
-	void draw()
+	plot::Graph& get_graph()
 	{
-		if (!window_open) start_window();
-		BeginDrawing();
-		ClearBackground(internal_graph.get_bgcolor());
-		internal_graph.draw();
-		// Draw points
-		EndDrawing();
+		return internal_graph;
 	}
 
 	void set_fgcolor(Color color)
@@ -648,10 +662,6 @@ public:
 		return color;
 	}
 
-	bool is_alternating()
-	{
-		return alternate;
-	}
 private:
 	bool alternate = false;
 
@@ -787,6 +797,7 @@ private:
 			input.erase(input.begin(), input.begin() + 6);
 			Color color = get_color(input);
 			internal_graph.set_fgcolor(color);
+			mw::MessageWindow::getInstance().text_color = color;
 			return;
 		}
 		else if (input.find("setbg ") == 0)
@@ -794,6 +805,7 @@ private:
 			input.erase(input.begin(), input.begin() + 6);
 			Color color = get_color(input);
 			internal_graph.set_bgcolor(color);
+			mw::MessageWindow::getInstance().bg_color = color;
 			return;
 		}
 		else if (input.find("setgrid ") == 0)
