@@ -18,6 +18,10 @@ enum TokenType {
 class OpToken {
 public:
     // Constructor for values
+    OpToken() {
+		type = TokenType::UNINITILIZED;
+	}
+
     explicit OpToken(cmn::value v){
         data.val = v;
         type = TokenType::VALUE;

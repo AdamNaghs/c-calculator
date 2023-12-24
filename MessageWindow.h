@@ -76,7 +76,7 @@ namespace mw
 			int currentY = locy + height;
 			std::vector<std::string>::reverse_iterator it = messages.rbegin();
 			std::vector<std::ptrdiff_t> indicesToRemove;
-#pragma omp parallel for ordered schedule(dynamic)
+//#pragma omp parallel for ordered schedule(dynamic)
 			while (it != messages.rend()) {
 				std::string message = *it;
 				if (message.empty()) message = " ";
@@ -92,7 +92,7 @@ namespace mw
 					continue;
 				}
 
-				Vector2 textPosition = { locx, (float)currentY };
+				Vector2 textPosition = { (float)locx, (float)currentY };
 				DrawTextEx(font, message.c_str(), textPosition, (float)fontSize, (float)spacing, text_color);
 
 				if (it == messages.rbegin() && cursor >= 0 && cursor <= message.length()) {

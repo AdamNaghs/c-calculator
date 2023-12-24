@@ -1,4 +1,4 @@
-#include <stack>
+#include <vector>
 #include <string>
 #include <iostream>
 #include "rpn.h"
@@ -21,10 +21,11 @@ namespace rpn
 			std::cout << "Sorting: " << tok::vectostr(v) << '\n' << std::endl;
 			mw::MessageWindow::getInstance().print("Sorting: " + tok::vectostr(v));
 		}
+		tok::OpToken tok;
 //#pragma omp parallel for shared(ops, ret)
 		for (int i = 0; i < v.size();i++)
 		{
-			tok::OpToken tok = v[i];
+			tok = v[i];
 			// if digit push to ret
 			cmn::op op = tok.GetOperator();
 			switch (op)
@@ -121,25 +122,18 @@ namespace rpn
 			// check if at the top of 
 		   // the stack there is higher precedence
 		}
-		// manually convert stack to vec
 		while (!ops.empty())
 		{
 			ret.push_back(ops.back());
 			ops.pop_back();
 		}
-		v.clear();
-		v.reserve(ret.size());
-		while (!ret.empty())
-		{
-			v.insert(v.begin(), ret.back());
-			ret.pop_back();
-		}
-
+		v = ret;
 	}
 
 	cmn::value eval(const std::vector<tok::OpToken>& tokens) {
-		std::stack<cmn::value> operandStack;
-
+		std::vector<cmn::value> operandStack;
+		operandStack.reserve(tokens.size());
+#pragma omp parallel for shared(operandStack) 
 		for (const tok::OpToken& token : tokens) {
 			if (!token.IsOperator()) {
 				// Push number onto the stack
@@ -150,33 +144,33 @@ namespace rpn
 					mw::MessageWindow::getInstance().print("Invalid input. Function '" + token.GetName() + "' not defined.\n");
 					return 0;
 				}
-				operandStack.push(token.GetValue());
+				operandStack.push_back(token.GetValue());
 			}
 			else {
 				// Pop operands from the stack
 				if (operandStack.empty()) goto not_enough_operands;
-				cmn::value right = operandStack.top();
-				operandStack.pop();
+				cmn::value right = operandStack.back();
+				operandStack.pop_back();
 				if (operandStack.empty()) return right;
-				cmn::value left = operandStack.top();
-				operandStack.pop();
+				cmn::value left = operandStack.back();
+				operandStack.pop_back();
 
 				// Apply the operator
 				switch (token.GetOperator()) {
 				case cmn::op::ADD:
-					operandStack.push(left + right);
+					operandStack.push_back(left + right);
 					break;
 				case cmn::op::SUB:
-					operandStack.push(left - right);
+					operandStack.push_back(left - right);
 					break;
 				case cmn::op::MULT:
-					operandStack.push(left * right);
+					operandStack.push_back(left * right);
 					break;
 				case cmn::op::DIV:;
-					operandStack.push(left / right); // Ensure division by zero is handled
+					operandStack.push_back(left / right); // Ensure division by zero is handled
 					break;
 				case cmn::op::POW:
-					operandStack.push(std::pow(left, right)); // Requires <cmath>
+					operandStack.push_back(std::pow(left, right)); // Requires <cmath>
 					break;
 					// Add cases for other operators as needed
 				}
@@ -191,7 +185,7 @@ namespace rpn
 			mw::MessageWindow::getInstance().print("Invalid input. Not enough operands, cannot solve expression.\n");
 			return 0;
 		}
-		return operandStack.top();
+		return operandStack.back();
 	}
 
 }

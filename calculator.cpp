@@ -18,6 +18,7 @@ Calculator calc;
 	// should sort before running to remove parenthesis
 int check_param_types(std::vector<std::vector<tok::OpToken>> vec, std::vector<tok::OpToken> types)
 {
+#pragma omp parallel for
 	for (int i = 0; i < std::min(types.size(), vec.size()); i++)
 	{
 		if (vec[i][0].GetType() != types[i].GetType())
@@ -126,14 +127,12 @@ void load_builtin_functions(void)
 		});
 	func::add_builtin_func("log", 2, [](std::vector<std::vector<tok::OpToken>> s)
 		{
-#pragma omp parallel for
 			for (auto& v : s)
 			{
 				for (auto& t : v)
 					if (t.GetType() == tok::FUNCTION && func::table.find(t.GetName()) == func::table.end()) return t;
 			}
 			bool error = 0;
-#pragma omp parallel for
 			for (auto& v : s)
 			{
 				v = func::collapse_function(s[0], error);
@@ -144,7 +143,6 @@ void load_builtin_functions(void)
 		});
 	func::add_builtin_func("root", 2, [](std::vector<std::vector<tok::OpToken>> s)
 		{
-#pragma omp parallel for 
 			for (auto& v : s)
 			{
 				for (auto& t : v)
@@ -162,7 +160,6 @@ void load_builtin_functions(void)
 	// takes range begin, end, sole variable name, expression;
 	func::add_builtin_func("sum", 4, [](std::vector<std::vector<tok::OpToken>> s)
 		{
-//#pragma omp parallel for 
 			for (int i = 0; i < 2; i++)
 			{
 				for (auto& t : s[i])
@@ -176,12 +173,10 @@ void load_builtin_functions(void)
 			cmn::value start = rpn::eval(s[0]);
 			std::vector<size_t> idxs;
 			std::vector<tok::OpToken> expr_vec = s[3];
-//#pragma omp parallel for
 			for (int i = 0; i < s[3].size(); i++)
 			{
 				if (s[3][i].GetType() == tok::FUNCTION && s[2][0].GetType() == tok::FUNCTION && s[3][i].GetName() == s[2][0].GetName()) idxs.emplace_back(i);
 			}
-//#pragma omp parallel for
 			for (auto t : expr_vec)
 			{
 				if (t.GetType() == tok::FUNCTION && t.GetName() != s[2][0].GetName() && func::table.find(t.GetName()) == func::table.end()) return t;
@@ -191,7 +186,6 @@ void load_builtin_functions(void)
 			for (size_t n = (size_t)start; (start > end) ? (n > end) : (n < end);(start > end) ? (n--) : (n++))
 			{
 				auto expr_copy = expr_vec;
-//#pragma omp parallel for
 				for (size_t idx : idxs)
 					expr_copy[idx] = tok::OpToken((cmn::value)n);
 				bool error = false;
@@ -231,7 +225,6 @@ void load_builtin_functions(void)
 			for (; (start > end) ? (n > end) : (n < end);(start > end) ? (n--) : (n++))
 			{
 				auto expr_copy = expr_vec;
-//#pragma omp parallel for
 				for (size_t idx : idxs)
 					expr_copy[idx] = tok::OpToken((cmn::value)n);
 				bool error = false;
@@ -300,7 +293,6 @@ void load_builtin_functions(void)
 			for (double n = start; (start > end) ? (n > end) : (n < end); n += (start > end) ? (-step) : (step))
 			{
 				auto expr_copy = expr_vec;
-//#pragma omp parallel for
 				for (size_t idx : idxs)
 				{
 					expr_copy[idx] = tok::OpToken((cmn::value)n);
@@ -377,7 +369,6 @@ void load_builtin_functions(void)
 			for (cmn::value n = start; (start > end) ? (n > end) : (n < end); n += (start > end) ? (-step) : (step))
 			{
 				auto expr_copy = expr_vec;
-//#pragma omp parallel for
 				for (size_t idx : idxs)
 				{
 					expr_copy[idx] = tok::OpToken((cmn::value)n);
@@ -733,7 +724,6 @@ int main(void)
 {
 	load_builtin_functions();
 	calc.alternate_colors();
-	benchmark();
 	calc.parse_expr("plot(-10,10,-1,1,n,sin(n)/n)");
 	calc.parse_expr("r = 5");
 	calc.parse_expr("f(x) = ((x^2) * -1) + r^2");
@@ -745,6 +735,7 @@ int main(void)
 	calc.parse_expr("plot_add(n,sin(n)/n * -1)");
 	calc.parse_expr("plot_addx(n,sin(n)/n * -1)");
 	calc.input_loop();
+	benchmark();
 
 	calc.parse_expr("plot(-1 * pi,pi,-1,1,n,cos(n))");
 	calc.parse_expr("plot_add(x,x)");

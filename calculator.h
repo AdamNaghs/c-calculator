@@ -31,7 +31,7 @@
 #define GRAPH_X 1000
 #define GRAPH_Y 0
 #define MAX_INPUT_CHARS 256
-#define TARGET_FPS 1000
+#define TARGET_FPS 120
 
 void empty_func(void) {}
 class Calculator
@@ -72,6 +72,7 @@ public:
 		int l = 0, r = 0;
 		int l_index = -1, r_index = -1;
 		bool open = false;
+	
 		for (int i = 0; i < input.size(); i++)
 		{
 			char c = input.at(i);
@@ -127,6 +128,7 @@ public:
 				return;
 			}
 		}
+
 
 		for (tok::OpToken t : tok_vec)
 		{
@@ -553,14 +555,11 @@ public:
 
 	void input_loop()
 	{
-
 		while (1)
 		{
 			update_graph();
 			std::string input = get_input(std::bind(&Calculator::update_graph, this));
-
 			handle_input(input);
-
 		}
 	}
 

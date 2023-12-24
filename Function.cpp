@@ -32,17 +32,20 @@ namespace func {
 	std::vector<std::vector<tok::OpToken>> split_args(const std::vector<tok::OpToken>& argTokens) {
 		std::vector<std::vector<tok::OpToken>> arguments;
 		std::vector<tok::OpToken> currentArg;
+		arguments.reserve(argTokens.size());
+		currentArg.reserve(argTokens.size());
 		int parenDepth = 0;
 		//#pragma omp parallel
 		for (const auto& token : argTokens)
 		{
 			auto t_type = token.GetType();
-			if (t_type == tok::TokenType::OPERATOR && token.GetOperator() == cmn::op::L_PAREN)
+			auto t_op = token.GetOperator();
+			if (t_type == tok::TokenType::OPERATOR && t_op == cmn::op::L_PAREN)
 				parenDepth++;
-			else if (t_type == tok::TokenType::OPERATOR && token.GetOperator() == cmn::op::R_PAREN)
+			else if (t_type == tok::TokenType::OPERATOR && t_op == cmn::op::R_PAREN)
 				parenDepth--;
 
-			if ((t_type == tok::TokenType::OPERATOR) && token.GetOperator() == cmn::op::COMMA)
+			if ((t_type == tok::TokenType::OPERATOR) && t_op == cmn::op::COMMA)
 			{
 				if (parenDepth == 0)
 				{
@@ -94,6 +97,7 @@ namespace func {
 		return expr;
 	}
 
+	// replace function call with the expression it contains
 	// return 0 on success, 1 on delay evaluation, -1 on failure
 	return_code proc_func_call(std::vector<tok::OpToken>& tokens, int funcIndex) {
 		if (funcIndex < 0 || funcIndex >= tokens.size()) return FAILURE;
@@ -145,7 +149,9 @@ namespace func {
 		}
 		bool error = false;
 		std::vector<std::vector<tok::OpToken>> collapsed = collapse_function(arguments, error);
+
 		if (error) return INVALID_INPUT;
+		
 		if (funcIt->second.builtin.available)
 		{
 			tok::OpToken val = table[funcIt->second.GetName()].run_builtin(collapsed);
@@ -160,9 +166,12 @@ namespace func {
 			}
 			return SUCCESS;
 		}
+		
 		std::vector<tok::OpToken> substitutedExpr = sub_params(funcIt->second.GetExpr(), funcIt->second.GetParams(), collapsed);
 		substitutedExpr = collapse_function(substitutedExpr,error);
+		
 		if (error) return INVALID_INPUT;
+		
 		tokens.erase(tokens.begin() + funcIndex, rightParenIt + 1 <= tokens.end() ? rightParenIt + 1 : tokens.end());
 		tokens.insert(tokens.begin() + funcIndex, substitutedExpr.begin(), substitutedExpr.end());
 		return SUCCESS;
@@ -172,12 +181,13 @@ namespace func {
 
 	// left hand slice tokenized string, i.e. without =
 	// returns index of func with params or -1 on fail
+	// replaces functions that have no parameters with their expression
 	int has_function(std::vector<tok::OpToken>& v, bool& reached_depth)
 	{
 		if (v.empty()) return -1;
-		if (v.size() == 1 && v[0].GetType() != tok::TokenType::FUNCTION) return -1;
+		//if (v.size() == 1 && v[0].GetType() != tok::TokenType::FUNCTION) return -1;
 		int i;
-#pragma omp parallel for shared(v) private(i) schedule(dynamic)
+//#pragma omp parallel for shared(v) private(i) schedule(dynamic)
 		for (i = 0; i < v.size() && (i < MAX_DEPTH); i++)
 		{
 			if (v[i].GetType() == tok::TokenType::FUNCTION)
@@ -211,7 +221,6 @@ namespace func {
 	std::vector<tok::OpToken> collapse_function(std::vector<tok::OpToken> tokens, bool& encountered_error)
 	{
 		int tmp, depth = 0;
-#pragma omp parallel for shared(tokens) private(tmp) schedule(dynamic)
 		while ((tmp = has_function(tokens,encountered_error)) > -1 && (depth++ < MAX_DEPTH))
 		{
 			if (encountered_error)
@@ -243,7 +252,7 @@ namespace func {
 			if (tokens.empty()) continue;
 			if (tokens.size() == 1 && tokens[0].GetType() == tok::TokenType::VALUE) continue; // prevent adding more calls to the stack just to yield the same value
 			tokens = collapse_function(tokens, encountered_error);
-			if (encountered_error) break;
+			if (encountered_error) continue;
 		}
 		return token_vecs;
 	}

@@ -9,7 +9,6 @@
 namespace plot
 {
 
-#define POINT_SIZE 2
 	class Point
 	{
 	public:
