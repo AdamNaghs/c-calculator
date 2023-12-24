@@ -31,7 +31,7 @@
 #define GRAPH_X 1000
 #define GRAPH_Y 0
 #define MAX_INPUT_CHARS 256
-#define TARGET_FPS 60
+#define TARGET_FPS 1000
 
 void empty_func(void) {}
 class Calculator
@@ -39,7 +39,6 @@ class Calculator
 private:
 	std::vector<std::string> history;
 	std::vector<std::string> future;
-	std::vector<std::string> input_history;
 	mw::MessageWindow& message_window = mw::MessageWindow::getInstance();
 	std::streambuf* coutBuf;
 
@@ -244,7 +243,6 @@ public:
 					{
 						std::cout << "\n";
 						history.push_back(ret);
-						input_history.push_back(ret);
 						message_window.add_message(ret);
 						message_window.replace_back(" ");
 						return ret;
@@ -444,7 +442,6 @@ public:
 			std::cout << "\n";
 		}
 		history.push_back(ret);
-		input_history.push_back(ret);
 		return ret;
 	}
 
@@ -570,6 +567,7 @@ public:
 	void plot(plot::Graph graph, std::string name)
 	{
 		if (!window_open) start_window();
+		//internal_graph.clear();	
 		internal_graph = graph;
 		internal_graph_name = name;
 		message_window.bg_color = internal_graph.get_bgcolor();
@@ -899,6 +897,11 @@ private:
 	void update_graph()
 	{
 		if (!window_open) return;
+		if (WindowShouldClose()) 
+		{
+			CloseWindow();
+			exit(0);
+		}
 		plot(internal_graph, internal_graph_name);
 
 	}

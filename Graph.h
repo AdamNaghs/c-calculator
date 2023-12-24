@@ -45,12 +45,6 @@ namespace plot
 
 		LineSegment(const Point& start, const Point& end) : start(start), end(end) {}
 
-		void print() const {
-			std::cout << "Start: (" << start.x << ", " << start.y << "), "
-				<< "End: (" << end.x << ", " << end.y << ")\n";
-			mw::MessageWindow::getInstance().add_message("Start: (" + std::to_string(start.x) + ", " + std::to_string(start.y) + "), "
-							+ "End: (" + std::to_string(end.x) + ", " + std::to_string(end.y) + ")\n");
-		}
 		bool operator<(const LineSegment& other) const {
 			if (start != other.start) return start < other.start;
 			return end < other.end;
@@ -90,8 +84,8 @@ namespace plot
 			y_axis.start = y_start;
 			y_axis.end = y_end;
 			bgcolor = DARKGRAY;
+			gridcolor = GRAY;
 			fgcolor = BLUE;
-			gridcolor = WHITE;
 			axiscolor = RED;
 			//points.reserve(abs(x_start) + abs(x_end) + abs(y_start) + abs(y_end));
 		}
@@ -139,15 +133,16 @@ namespace plot
 
 		void draw_ticks()
 		{
-			int x_axis_y = loc.y + dim.height * (1.0 - (0.0 - y_axis.start) / (y_axis.end - y_axis.start));
-			int y_axis_x = loc.x + dim.width * ((0.0 - x_axis.start) / (x_axis.end - x_axis.start));
+			int x_axis_y = (int) loc.y + dim.height * (1.0 - (0.0 - y_axis.start) / (y_axis.end - y_axis.start));
+			int y_axis_x = (int) loc.x + dim.width * ((0.0 - x_axis.start) / (x_axis.end - x_axis.start));
 			// Draw x-axis ticks
+//#pragma omp parallel for
 			for (int i = x_axis.start; i < x_axis.end; ++i) {
 				int tickX = loc.x + (i - x_axis.start) * dim.width / (x_axis.end - x_axis.start);
 				DrawLine(tickX, x_axis_y - 5, tickX, x_axis_y + 5, fgcolor);
 			}
-
 			// Draw y-axis ticks
+//#pragma omp parallel for
 			for (int i = y_axis.start; i <= y_axis.end; ++i) {
 				int tickY = loc.y + (1.0 - (i - y_axis.start) / (double)(y_axis.end - y_axis.start)) * dim.height;
 				DrawLine(y_axis_x - 5, tickY, y_axis_x + 5, tickY, fgcolor);
@@ -157,12 +152,14 @@ namespace plot
 		void draw_grid()
 		{
 			// Draw x-axis grid lines
+//#pragma omp parallel for
 			for (int i = x_axis.start; i < x_axis.end; ++i) {
 				int x = loc.x + (i - x_axis.start) * dim.width / (x_axis.end - x_axis.start);
 				DrawLine(x, loc.y, x, loc.y + dim.height, gridcolor);
 			}
 
 			// Draw y-axis grid lines
+//#pragma omp parallel for
 			for (int i = y_axis.start; i <= y_axis.end; ++i) {
 				int y = loc.y + (1.0 - (i - y_axis.start) / (double)(y_axis.end - y_axis.start)) * dim.height;;
 				DrawLine(loc.x, y, loc.x + dim.width, y, gridcolor);
@@ -185,7 +182,7 @@ namespace plot
 
 		void plot()
 		{
-			#pragma omp parallel for
+#pragma omp parallel for
 			for (auto& line : lines)
 			{
 				Point p = normalize_point(line.first.start);
@@ -277,14 +274,14 @@ namespace plot
 
 
 		double precision_x() const {
-			double x_range = abs(x_axis.end - x_axis.start);
-			double pixelsPerUnitX = static_cast<double>(dim.width) / x_range;
+			double x_range = abs(x_axis.end) +  abs(x_axis.start);
+			double pixelsPerUnitX = ((double)dim.width) / x_range;
 			return 1 / pixelsPerUnitX;
 		}
 
 		double precision_y() const {
-			double y_range = abs(x_axis.end - x_axis.start);
-			double pixelsPerUnitY = static_cast<double>(dim.height) / y_range;
+			double y_range = abs(x_axis.end) + abs(x_axis.start);
+			double pixelsPerUnitY = ((double)dim.height) / y_range;
 			return 1 / pixelsPerUnitY;
 		}
 

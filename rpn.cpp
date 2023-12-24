@@ -12,15 +12,16 @@ namespace rpn
 	// sorting removes commas and parenthesis
 	void sort(std::vector<tok::OpToken>& v)
 	{
-		std::stack<tok::OpToken> ops;
-		std::stack<tok::OpToken> ret;
-
+		std::vector<tok::OpToken> ops; // use as stack
+		std::vector<tok::OpToken> ret;
+		ops.reserve(v.size());
+		ret.reserve(v.size());
 		if (debug)
 		{
 			std::cout << "Sorting: " << tok::vectostr(v) << '\n' << std::endl;
-			mw::MessageWindow::getInstance().print("Sorting: " + tok::vectostr(v) + '\n');
+			mw::MessageWindow::getInstance().print("Sorting: " + tok::vectostr(v));
 		}
-
+//#pragma omp parallel for shared(ops, ret)
 		for (int i = 0; i < v.size();i++)
 		{
 			tok::OpToken tok = v[i];
@@ -30,24 +31,24 @@ namespace rpn
 			{
 			case cmn::op::NONE:
 			{
-				ret.push(tok);
+				ret.push_back(tok);
 				break;
 			}
 			case cmn::op::L_PAREN:
 			{
-				ops.push(tok);
+				ops.push_back(tok);
 				break;
 			}
 			case cmn::op::R_PAREN:
 			{
 				if (ops.empty()) break;
-				tok::OpToken tmp = ops.top();
-				ops.pop();
+				tok::OpToken tmp = ops.back();
+				ops.pop_back();
 				while (!ops.empty() && (tmp.GetOperator() != cmn::op::L_PAREN))
 				{
-					ret.push(tmp);
-					tmp = ops.top();
-					ops.pop();
+					ret.push_back(tmp);
+					tmp = ops.back();
+					ops.pop_back();
 				}
 
 				break;
@@ -59,19 +60,19 @@ namespace rpn
 			case cmn::op::POW:
 			{
 				// While there are operators on the ops stack and the operator at the top of the ops stack has greater or equal precedence
-				while (!ops.empty() && cmn::opcmp(ops.top().GetOperator(), tok.GetOperator()) != -1)
+				while (!ops.empty() && cmn::opcmp(ops.back().GetOperator(), tok.GetOperator()) != -1)
 				{
 					// Pop operators from the ops stack onto the ret stack
-					ret.push(ops.top());
-					ops.pop();
+					ret.push_back(ops.back());
+					ops.pop_back();
 				}
 				// Push the current operator onto the ops stack
-				ops.push(tok);
+				ops.push_back(tok);
 				break;
 			}
 			default:
 				// not a value or a operator
-				ret.push(tok); // add to ret incase is was desired by user
+				ret.push_back(tok); // add to ret incase is was desired by user
 				break;
 			}
 
@@ -85,8 +86,8 @@ namespace rpn
 					std::vector<tok::OpToken> tmp;
 					std::cout << "Ret: ";
 					mw::MessageWindow::getInstance().print("Ret: ");
-					for (auto dump = ret; !dump.empty(); dump.pop())
-						tmp.insert(tmp.begin(), dump.top());
+					for (auto dump = ret; !dump.empty(); dump.pop_back())
+						tmp.insert(tmp.begin(), dump.back());
 					for (auto t : tmp)
 					{
 						std::cout << t << " ";
@@ -102,8 +103,8 @@ namespace rpn
 					std::cout << "Ops: ";
 					mw::MessageWindow::getInstance().print("Ops: ");
 					std::vector<tok::OpToken> tmp;
-					for (auto dump = ops; !dump.empty(); dump.pop())
-						tmp.insert(tmp.begin(), dump.top());
+					for (auto dump = ops; !dump.empty(); dump.pop_back())
+						tmp.insert(tmp.begin(), dump.back());
 					for (auto t : tmp)
 					{
 						std::cout << t << " ";
@@ -123,15 +124,15 @@ namespace rpn
 		// manually convert stack to vec
 		while (!ops.empty())
 		{
-			ret.push(ops.top());
-			ops.pop();
+			ret.push_back(ops.back());
+			ops.pop_back();
 		}
 		v.clear();
 		v.reserve(ret.size());
 		while (!ret.empty())
 		{
-			v.insert(v.begin(), ret.top());
-			ret.pop();
+			v.insert(v.begin(), ret.back());
+			ret.pop_back();
 		}
 
 	}

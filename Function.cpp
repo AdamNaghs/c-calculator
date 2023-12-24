@@ -33,7 +33,7 @@ namespace func {
 		std::vector<std::vector<tok::OpToken>> arguments;
 		std::vector<tok::OpToken> currentArg;
 		int parenDepth = 0;
-
+		//#pragma omp parallel
 		for (const auto& token : argTokens)
 		{
 			auto t_type = token.GetType();
@@ -163,12 +163,7 @@ namespace func {
 		std::vector<tok::OpToken> substitutedExpr = sub_params(funcIt->second.GetExpr(), funcIt->second.GetParams(), collapsed);
 		substitutedExpr = collapse_function(substitutedExpr,error);
 		if (error) return INVALID_INPUT;
-		//rpn::sort(substitutedExpr);
-		//cmn::value val = rpn::eval(substitutedExpr);
-		//substitutedExpr.clear();
-		//substitutedExpr.emplace_back(val);
 		tokens.erase(tokens.begin() + funcIndex, rightParenIt + 1 <= tokens.end() ? rightParenIt + 1 : tokens.end());
-		//tokens.erase(it, rightParenIt + 1);
 		tokens.insert(tokens.begin() + funcIndex, substitutedExpr.begin(), substitutedExpr.end());
 		return SUCCESS;
 	}
@@ -182,6 +177,7 @@ namespace func {
 		if (v.empty()) return -1;
 		if (v.size() == 1 && v[0].GetType() != tok::TokenType::FUNCTION) return -1;
 		int i;
+#pragma omp parallel for shared(v) private(i) schedule(dynamic)
 		for (i = 0; i < v.size() && (i < MAX_DEPTH); i++)
 		{
 			if (v[i].GetType() == tok::TokenType::FUNCTION)
@@ -215,6 +211,7 @@ namespace func {
 	std::vector<tok::OpToken> collapse_function(std::vector<tok::OpToken> tokens, bool& encountered_error)
 	{
 		int tmp, depth = 0;
+#pragma omp parallel for shared(tokens) private(tmp) schedule(dynamic)
 		while ((tmp = has_function(tokens,encountered_error)) > -1 && (depth++ < MAX_DEPTH))
 		{
 			if (encountered_error)
@@ -240,7 +237,8 @@ namespace func {
 
 	std::vector<std::vector<tok::OpToken>> collapse_function(std::vector<std::vector<tok::OpToken>> token_vecs, bool& encountered_error)
 	{
-		for (std::vector<tok::OpToken>& tokens : token_vecs) \
+#pragma omp parallel for shared(token_vecs) schedule(dynamic)
+		for (std::vector<tok::OpToken>& tokens : token_vecs) 
 		{
 			if (tokens.empty()) continue;
 			if (tokens.size() == 1 && tokens[0].GetType() == tok::TokenType::VALUE) continue; // prevent adding more calls to the stack just to yield the same value

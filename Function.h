@@ -11,6 +11,7 @@
 #define MAX_DEPTH 1000
 
 namespace func {
+	// type for built-in functions
 	typedef std::function <tok::OpToken(std::vector<std::vector<tok::OpToken>>)> params_func;
 
 	class Function
@@ -76,7 +77,7 @@ namespace func {
 		INVALID_INPUT = -2,
 	};
 
-
+	// map to store all built-in and user functions
 	extern std::map<std::string, Function> table;
 
 	void dump_table(void);
@@ -85,10 +86,12 @@ namespace func {
 
 	std::string tabletostr(void);
 
+	// seperates arguments based on commas and parenthesis depth
 	std::vector<std::vector<tok::OpToken>> split_args(const std::vector<tok::OpToken>& argTokens);
-
+	
 	std::vector<tok::OpToken> collapse_function(std::string input, bool& encountered_error);
-
+	// collaspe function collapsed function calls in the expression into their values
+	// so that the expression (vec of tokens) only contains numbers and operators and can be sorted and evaluated safely
 	std::vector<tok::OpToken> collapse_function(std::vector<tok::OpToken>, bool& encountered_error);
 
 	std::vector<std::vector<tok::OpToken>> collapse_function(std::vector<std::vector<tok::OpToken>> token_vecs, bool& encountered_error);
