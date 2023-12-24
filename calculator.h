@@ -277,7 +277,7 @@ public:
 								history.pop_back();
 								// Redraw the entire line
 								// Move cursor back to correct position
-								cursor = ret.size();
+								cursor = (int)ret.size();
 								std::cout << "\rInput expression: " << std::string(ret.begin(), ret.end());
 								message_window.replace_back(ret);
 								message_window.set_cursor(cursor);
@@ -286,7 +286,7 @@ public:
 						case 80: // Down arrow
 						{
 							// Save the current length for clearing the line
-							int oldLength = ret.length() * 2;
+							int oldLength = (int) ret.length() * 2;
 
 							if (!future.empty()) {
 								history.push_back(ret);
@@ -297,7 +297,7 @@ public:
 								ret.clear(); // Clear the current input if there's nothing in the future
 							}
 
-							cursor = ret.size(); // Set cursor to the end of the new string
+							cursor = (int)ret.size(); // Set cursor to the end of the new string
 							int max = std::max(oldLength, (int)ret.length() * 2);
 
 							// Clear the line: Print enough spaces to cover the old string and move cursor back
@@ -386,7 +386,7 @@ public:
 						history.pop_back();
 						// Redraw the entire line
 						// Move cursor back to correct position
-						cursor = ret.size();
+						cursor =  (int) ret.size();
 						std::cout << "\rInput expression: " << std::string(ret.begin(), ret.end());
 						message_window.replace_back(ret);
 						message_window.set_cursor(cursor);
@@ -395,7 +395,7 @@ public:
 				else if (IsKeyPressed(KEY_DOWN)) // Down arrow
 				{
 					// Save the current length for clearing the line
-					int oldLength = ret.length() * 2;
+					int oldLength = (int) ret.length() * 2;
 
 					if (!future.empty()) {
 						history.push_back(ret);
@@ -406,7 +406,7 @@ public:
 						ret.clear(); // Clear the current input if there's nothing in the future
 					}
 
-					cursor = ret.size(); // Set cursor to the end of the new string
+					cursor =(int) ret.size(); // Set cursor to the end of the new string
 					int max = std::max(oldLength, (int)ret.length() * 2);
 
 					// Clear the line: Print enough spaces to cover the old string and move cursor back
@@ -493,7 +493,7 @@ public:
 								history.pop_back();
 								// Redraw the entire line
 								// Move cursor back to correct position
-								cursor = ret.size();
+								cursor = (int) ret.size();
 								std::cout << "\rInput expression: " << std::string(ret.begin(), ret.end());
 							}
 							break;
@@ -504,7 +504,7 @@ public:
 								std::cout << std::string(MAX_INPUT_CHARS - ret.length(), ' ') << std::string(MAX_INPUT_CHARS - ret.length(), '\b'); // Clear the line
 								ret = future.back();
 								future.pop_back();
-								cursor = ret.size(); // Set cursor to the end of the new string
+								cursor =  (int) ret.size(); // Set cursor to the end of the new string
 								std::cout << "\rInput expression: " << std::string(ret.begin(), ret.end());
 							}
 							else

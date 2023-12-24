@@ -32,9 +32,6 @@ namespace plot
 		bool operator!=(const Point& other) const {
 			return !(*this == other);
 		}
-		Point as_negative() {
-			return Point(-x, -y);
-		}
 	};
 
 	class LineSegment {
@@ -51,7 +48,7 @@ namespace plot
 
 	};
 
-	std::map<LineSegment, Color> create_line_segment(const std::map<Point, Color>& points) {
+	std::map<LineSegment, Color> make_line_map(const std::map<Point, Color>& points) {
 		std::map<LineSegment, Color> lineSegments;
 
 		if (points.empty()) {
@@ -117,33 +114,33 @@ namespace plot
 			//normalized_points.clear();
 		}
 
-		Point normalize_point(Point p)
+		Point relative_point(Point p)
 		{
 			return Point((p.x - x_axis.start) / (x_axis.end - x_axis.start), (p.y - y_axis.start) / (y_axis.end - y_axis.start));
 		}
 
 		void draw_axis()
 		{
-			int x_axis_y = loc.y + dim.height * (1.0 - (0.0 - y_axis.start) / (y_axis.end - y_axis.start));
-			int y_axis_x = loc.x + dim.width * ((0.0 - x_axis.start) / (x_axis.end - x_axis.start));
+			int x_axis_y = (int)(loc.y + dim.height * (1.0 - (0.0 - y_axis.start) / (y_axis.end - y_axis.start)));
+			int y_axis_x =(int) (loc.x + dim.width * ((0.0 - x_axis.start) / (x_axis.end - x_axis.start)));
 			DrawLine(loc.x, x_axis_y, loc.x + dim.width, x_axis_y, axiscolor);
 			DrawLine(y_axis_x, loc.y, y_axis_x, loc.y + dim.height, axiscolor);
 		}
 
 		void draw_ticks()
 		{
-			int x_axis_y = (int) loc.y + dim.height * (1.0 - (0.0 - y_axis.start) / (y_axis.end - y_axis.start));
-			int y_axis_x = (int) loc.x + dim.width * ((0.0 - x_axis.start) / (x_axis.end - x_axis.start));
+			int x_axis_y = (int)(loc.y + dim.height * (1.0 - (0.0 - y_axis.start) / (y_axis.end - y_axis.start)));
+			int y_axis_x = (int)(loc.x + dim.width * ((0.0 - x_axis.start) / (x_axis.end - x_axis.start)));
 			// Draw x-axis ticks
 //#pragma omp parallel for
 			for (int i = x_axis.start; i < x_axis.end; ++i) {
-				int tickX = loc.x + (i - x_axis.start) * dim.width / (x_axis.end - x_axis.start);
+				int tickX = (int)(loc.x + (i - x_axis.start) * dim.width / (x_axis.end - x_axis.start));
 				DrawLine(tickX, x_axis_y - 5, tickX, x_axis_y + 5, fgcolor);
 			}
 			// Draw y-axis ticks
 //#pragma omp parallel for
 			for (int i = y_axis.start; i <= y_axis.end; ++i) {
-				int tickY = loc.y + (1.0 - (i - y_axis.start) / (double)(y_axis.end - y_axis.start)) * dim.height;
+				int tickY = (int)(loc.y + (1.0 - (i - y_axis.start) / (double)(y_axis.end - y_axis.start)) * dim.height);
 				DrawLine(y_axis_x - 5, tickY, y_axis_x + 5, tickY, fgcolor);
 			}
 		}
@@ -160,7 +157,7 @@ namespace plot
 			// Draw y-axis grid lines
 //#pragma omp parallel for
 			for (int i = y_axis.start; i <= y_axis.end; ++i) {
-				int y = loc.y + (1.0 - (i - y_axis.start) / (double)(y_axis.end - y_axis.start)) * dim.height;;
+				int y = (int) (loc.y + (1.0 - (i - y_axis.start) / (double)(y_axis.end - y_axis.start)) * dim.height);
 				DrawLine(loc.x, y, loc.x + dim.width, y, gridcolor);
 			}
 		}
@@ -184,15 +181,17 @@ namespace plot
 #pragma omp parallel for
 			for (auto& line : lines)
 			{
-				Point p = normalize_point(line.first.start);
-				Point q = normalize_point(line.first.end);
+				Point p = relative_point(line.first.start);
+				Point q = relative_point(line.first.end);
 				double inverted_y = 1.0 - p.y;
-				int x1 = loc.x + p.x * dim.width;
-				int y1 = loc.y + inverted_y * dim.height;
+				float x1 = (loc.x + p.x * dim.width);
+				float y1 = (loc.y + inverted_y * dim.height);
 				double inverted_y2 = 1.0 - q.y;
-				int x2 = loc.x + q.x * dim.width;
-				int y2 = loc.y + inverted_y2 * dim.height;
-				DrawLine(x1, y1, x2, y2, line.second);
+				float x2 = (loc.x + q.x * dim.width);
+				float y2 = (loc.y + inverted_y2 * dim.height);
+
+				//DrawLine(x1, y1, x2, y2, line.second);
+				DrawLineV({ x1, y1 }, { x2, y2 }, line.second);
 			}
 		}
 

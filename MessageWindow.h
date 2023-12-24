@@ -96,7 +96,7 @@ namespace mw
 				DrawTextEx(font, message.c_str(), textPosition, (float)fontSize, (float)spacing, text_color);
 
 				if (it == messages.rbegin() && cursor >= 0 && cursor <= message.length()) {
-					Vector2 cursorPosition = { locx + MeasureTextEx(font, message.substr(0, cursor).c_str(), fontSize, spacing).x, (float)currentY };
+					Vector2 cursorPosition = { locx + MeasureTextEx(font, message.substr(0, cursor).c_str(), (float) fontSize, (float)spacing).x, (float)currentY };
 					DrawLineV(cursorPosition, { cursorPosition.x, cursorPosition.y + textSize.y }, cursor_color);
 				}
 
