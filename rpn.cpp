@@ -22,7 +22,6 @@ namespace rpn
 			mw::MessageWindow::getInstance().print("Sorting: " + tok::vectostr(v));
 		}
 		tok::OpToken tok;
-//#pragma omp parallel for shared(ops, ret)
 		for (int i = 0; i < v.size();i++)
 		{
 			tok = v[i];
@@ -133,7 +132,6 @@ namespace rpn
 	cmn::value eval(const std::vector<tok::OpToken>& tokens) {
 		std::vector<cmn::value> operandStack;
 		operandStack.reserve(tokens.size());
-#pragma omp parallel for shared(operandStack) 
 		for (const tok::OpToken& token : tokens) {
 			if (!token.IsOperator()) {
 				// Push number onto the stack

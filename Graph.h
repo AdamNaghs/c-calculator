@@ -85,7 +85,13 @@ namespace plot
 			axiscolor = RED;
 			//points.reserve(abs(x_start) + abs(x_end) + abs(y_start) + abs(y_end));
 		}
-		Graph(){}
+		Graph()
+		{
+			bgcolor = DARKGRAY;
+			gridcolor = GRAY;
+			fgcolor = BLUE;
+			axiscolor = RED;
+		}
 		~Graph()
 		{
 			lines.clear();

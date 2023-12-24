@@ -233,6 +233,7 @@ public:
 		int cursory = 0;
 		std::string ret;
 		std::cout << "\nInput expression: ";
+		message_window.print("\n");
 		volatile int key;
 		if (window_open)
 			while (1)
@@ -818,11 +819,6 @@ private:
 			}
 			return;
 		}
-		else if (input == "clear")
-		{
-			internal_graph.clear_points();
-			return;
-		}
 		else if (input == "mem")
 		{
 			auto map = internal_graph.get_lines();
@@ -838,6 +834,7 @@ private:
 		else if (input == "clear")
 		{
 			internal_graph.clear();
+			message_window.clear();
 			return;
 		}
 		else if (input == "alternate")

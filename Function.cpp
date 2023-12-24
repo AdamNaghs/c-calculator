@@ -12,7 +12,7 @@ namespace func {
 		s << "{\n";
 		for (std::pair<std::string, Function> pair : table)
 		{
-			s << "(Name: " << pair.first << ", Params: " << tok::vectostr(pair.second.GetParams()) << "\b, Expr: " << tok::vectostr(pair.second.GetExpr()) << "\b, Builtin Params:" << pair.second.builtin.num_params << "), \n";
+			s << "(Name: " << pair.first << ", Params: " << tok::vectostr(pair.second.GetParams()) << ", Expr: " << tok::vectostr(pair.second.GetExpr()) << ", Builtin Params:" << pair.second.builtin.num_params << "), \n";
 		}
 		s << "}\n";
 		return s.str();

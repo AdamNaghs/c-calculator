@@ -50,11 +50,15 @@ namespace mw
 			}
 		}
 
+		void clear()
+		{
+			messages.clear();
+		}
 
 		void print(std::string message)
 		{
 			add_message(message);
-			add_message(" ");
+			//add_message(" ");
 			//add_message(" ");
 		}
 
