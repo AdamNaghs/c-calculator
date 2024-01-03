@@ -20,18 +20,18 @@
 #include "MessageWindow.h"
 
 #define LAST_VALUE "!"
-#define WINDOW_WIDTH 3000
-#define WINDOW_HEIGHT 2000
+#define WINDOW_WIDTH 2500
+#define WINDOW_HEIGHT 1500
 #define MW_WIDTH 1000
-#define MW_HEIGHT 2000
-#define MW_X 0
+#define MW_HEIGHT 1500
+#define MW_X 1500
 #define MW_Y 0
-#define GRAPH_WIDTH 2000
-#define GRAPH_HEIGHT 2000
-#define GRAPH_X 1000
+#define GRAPH_WIDTH 1500
+#define GRAPH_HEIGHT 1500
+#define GRAPH_X 0
 #define GRAPH_Y 0
 #define MAX_INPUT_CHARS 256
-#define TARGET_FPS 60
+#define TARGET_FPS 120
 
 void empty_func(void) {}
 class Calculator
@@ -39,7 +39,6 @@ class Calculator
 private:
 	std::vector<std::string> history;
 	std::vector<std::string> future;
-	std::vector<std::string> input_history;
 	mw::MessageWindow& message_window = mw::MessageWindow::getInstance();
 	std::streambuf* coutBuf;
 
@@ -73,6 +72,7 @@ public:
 		int l = 0, r = 0;
 		int l_index = -1, r_index = -1;
 		bool open = false;
+	
 		for (int i = 0; i < input.size(); i++)
 		{
 			char c = input.at(i);
@@ -128,6 +128,7 @@ public:
 				return;
 			}
 		}
+
 
 		for (tok::OpToken t : tok_vec)
 		{
@@ -213,13 +214,20 @@ public:
 				return;
 			}
 			std::string tmp = "";
-			if (collapsed != tokens)
+			if (collapsed != tokens && collapsed.size() > 1)
 			{
 				std::string col_str = tok::vectostr(collapsed);
-				tmp.append(" = " + col_str);
+				if (col_str != input)
+					tmp.append(" = " + col_str);
+				//tmp.append(" = " + col_str);
 			}
 			rpn::sort(collapsed);
 			cmn::value n = rpn::eval(collapsed);
+			auto it = func::table.find(LAST_VALUE);
+			if (it != func::table.end())
+			{
+				func::table[it->second.GetName() + LAST_VALUE] = func::Function(it->second.GetName() + LAST_VALUE, empty_vec, it->second.GetExpr());
+			}
 			func::table[LAST_VALUE] = func::Function(LAST_VALUE, empty_vec, { tok::OpToken(n) });
 			std::cout << n << " = " << input << tmp << "\n";
 			message_window.print(std::to_string(n) + " = " + input + tmp);
@@ -229,8 +237,10 @@ public:
 	std::string get_input(std::function<void()> optional_func = empty_func)
 	{
 		int cursor = 0;
+		int cursory = 0;
 		std::string ret;
 		std::cout << "\nInput expression: ";
+		message_window.print("\n");
 		volatile int key;
 		if (window_open)
 			while (1)
@@ -243,7 +253,6 @@ public:
 					{
 						std::cout << "\n";
 						history.push_back(ret);
-						input_history.push_back(ret);
 						message_window.add_message(ret);
 						message_window.replace_back(" ");
 						return ret;
@@ -276,15 +285,16 @@ public:
 								history.pop_back();
 								// Redraw the entire line
 								// Move cursor back to correct position
-								cursor = ret.size();
+								cursor = (int)ret.size();
 								std::cout << "\rInput expression: " << std::string(ret.begin(), ret.end());
 								message_window.replace_back(ret);
+								message_window.set_cursor(cursor);
 							}
 							break;
 						case 80: // Down arrow
 						{
 							// Save the current length for clearing the line
-							int oldLength = ret.length() * 2;
+							int oldLength = (int) ret.length() * 2;
 
 							if (!future.empty()) {
 								history.push_back(ret);
@@ -295,7 +305,7 @@ public:
 								ret.clear(); // Clear the current input if there's nothing in the future
 							}
 
-							cursor = ret.size(); // Set cursor to the end of the new string
+							cursor = (int)ret.size(); // Set cursor to the end of the new string
 							int max = std::max(oldLength, (int)ret.length() * 2);
 
 							// Clear the line: Print enough spaces to cover the old string and move cursor back
@@ -305,6 +315,7 @@ public:
 							std::cout << "\rInput expression: " << ret;
 							// Redraw the entire line with the new input
 							message_window.replace_back(ret);
+							message_window.set_cursor(cursor);
 							break;
 						}
 						case 75: // Left arrow
@@ -334,6 +345,7 @@ public:
 						// Move cursor back to correct position
 						std::cout << "\rInput expression: " << std::string(ret.begin(), ret.begin() + cursor);
 						message_window.replace_back(ret);
+						message_window.set_cursor(cursor);
 					}
 				}
 				key = GetCharPressed();
@@ -346,6 +358,7 @@ public:
 						// Move cursor back to correct position
 						std::cout << "\rInput expression: " << std::string(ret.begin(), ret.begin() + cursor);
 						message_window.replace_back(ret);
+						message_window.set_cursor(cursor);
 					}
 					key = GetCharPressed();
 				}
@@ -367,6 +380,7 @@ public:
 					std::cout << "\n";
 					message_window.add_message(ret);
 					message_window.replace_back(" ");
+
 					return ret;  // Return the input when Enter is pressed
 
 				}
@@ -380,15 +394,16 @@ public:
 						history.pop_back();
 						// Redraw the entire line
 						// Move cursor back to correct position
-						cursor = ret.size();
+						cursor =  (int) ret.size();
 						std::cout << "\rInput expression: " << std::string(ret.begin(), ret.end());
 						message_window.replace_back(ret);
+						message_window.set_cursor(cursor);
 					}
 				}
 				else if (IsKeyPressed(KEY_DOWN)) // Down arrow
 				{
 					// Save the current length for clearing the line
-					int oldLength = ret.length() * 2;
+					int oldLength = (int) ret.length() * 2;
 
 					if (!future.empty()) {
 						history.push_back(ret);
@@ -399,7 +414,7 @@ public:
 						ret.clear(); // Clear the current input if there's nothing in the future
 					}
 
-					cursor = ret.size(); // Set cursor to the end of the new string
+					cursor =(int) ret.size(); // Set cursor to the end of the new string
 					int max = std::max(oldLength, (int)ret.length() * 2);
 
 					// Clear the line: Print enough spaces to cover the old string and move cursor back
@@ -407,7 +422,9 @@ public:
 
 					// Redraw the line with the new input
 					std::cout << "\rInput expression: " << ret;
+					// Redraw the entire line with the new input
 					message_window.replace_back(ret);
+					message_window.set_cursor(cursor);
 				}
 				else if (IsKeyPressed(KEY_LEFT)) // Left arrow
 				{
@@ -435,7 +452,6 @@ public:
 			std::cout << "\n";
 		}
 		history.push_back(ret);
-		input_history.push_back(ret);
 		return ret;
 	}
 
@@ -485,7 +501,7 @@ public:
 								history.pop_back();
 								// Redraw the entire line
 								// Move cursor back to correct position
-								cursor = ret.size();
+								cursor = (int) ret.size();
 								std::cout << "\rInput expression: " << std::string(ret.begin(), ret.end());
 							}
 							break;
@@ -496,7 +512,7 @@ public:
 								std::cout << std::string(MAX_INPUT_CHARS - ret.length(), ' ') << std::string(MAX_INPUT_CHARS - ret.length(), '\b'); // Clear the line
 								ret = future.back();
 								future.pop_back();
-								cursor = ret.size(); // Set cursor to the end of the new string
+								cursor =  (int) ret.size(); // Set cursor to the end of the new string
 								std::cout << "\rInput expression: " << std::string(ret.begin(), ret.end());
 							}
 							else
@@ -547,20 +563,19 @@ public:
 
 	void input_loop()
 	{
-
 		while (1)
 		{
 			update_graph();
 			std::string input = get_input(std::bind(&Calculator::update_graph, this));
-
 			handle_input(input);
-
 		}
 	}
 
+	// for swapping graph and drawing
 	void plot(plot::Graph graph, std::string name)
 	{
 		if (!window_open) start_window();
+		//internal_graph.clear();	
 		internal_graph = graph;
 		internal_graph_name = name;
 		message_window.bg_color = internal_graph.get_bgcolor();
@@ -572,9 +587,15 @@ public:
 		EndDrawing();
 	}
 
-	plot::Graph get_graph()
+	void draw()
 	{
-		return internal_graph;
+		if (!window_open) start_window();
+		BeginDrawing();
+		ClearBackground(internal_graph.get_bgcolor());
+		message_window.draw();
+		internal_graph.draw();
+		// Draw points
+		EndDrawing();
 	}
 
 	void add_line(plot::LineSegment line)
@@ -582,19 +603,19 @@ public:
 		internal_graph.add_line(line);
 	}
 
+	bool is_alternating()
+	{
+		return alternate;
+	}
+
 	bool is_plotting()
 	{
 		return window_open;
 	}
 
-	void draw()
+	plot::Graph& get_graph()
 	{
-		if (!window_open) start_window();
-		BeginDrawing();
-		ClearBackground(internal_graph.get_bgcolor());
-		internal_graph.draw();
-		// Draw points
-		EndDrawing();
+		return internal_graph;
 	}
 
 	void set_fgcolor(Color color)
@@ -641,10 +662,6 @@ public:
 		return color;
 	}
 
-	bool is_alternating()
-	{
-		return alternate;
-	}
 private:
 	bool alternate = false;
 
@@ -688,27 +705,16 @@ private:
 	{"blue", BLUE},
 	{"green", GREEN},
 	{"purple", PURPLE},
-	{"darkgray", DARKGRAY},
-	{"lightgray", LIGHTGRAY},
 	{"yellow", YELLOW},
-	{"gray", GRAY},
 	{"maroon", MAROON},
 	{"orange", ORANGE},
-	{"beige", BEIGE},
 	{"magenta", MAGENTA},
 	{"gold", GOLD},
 	{"pink", PINK},
 	{"skyblue", SKYBLUE},
 	{"lime", LIME},
 	{"violet", VIOLET},
-	{"darkgreen", DARKGREEN},
-	{"darkblue", DARKBLUE},
-	{"darkbrown", DARKBROWN},
-	{"darkpurple", DARKPURPLE},
-	{"brown", BROWN},
 	{"white", WHITE},
-	{"black", BLACK},
-	{"raywhite", RAYWHITE},
 	};
 
 	std::map<std::string, Color>::const_iterator& plot_color_iter = plot_color_map.begin();
@@ -791,6 +797,7 @@ private:
 			input.erase(input.begin(), input.begin() + 6);
 			Color color = get_color(input);
 			internal_graph.set_fgcolor(color);
+			mw::MessageWindow::getInstance().text_color = color;
 			return;
 		}
 		else if (input.find("setbg ") == 0)
@@ -798,6 +805,7 @@ private:
 			input.erase(input.begin(), input.begin() + 6);
 			Color color = get_color(input);
 			internal_graph.set_bgcolor(color);
+			mw::MessageWindow::getInstance().bg_color = color;
 			return;
 		}
 		else if (input.find("setgrid ") == 0)
@@ -823,11 +831,6 @@ private:
 			}
 			return;
 		}
-		else if (input == "clear")
-		{
-			internal_graph.clear_points();
-			return;
-		}
 		else if (input == "mem")
 		{
 			auto map = internal_graph.get_lines();
@@ -843,6 +846,7 @@ private:
 		else if (input == "clear")
 		{
 			internal_graph.clear();
+			message_window.clear();
 			return;
 		}
 		else if (input == "alternate")
@@ -901,6 +905,11 @@ private:
 	void update_graph()
 	{
 		if (!window_open) return;
+		if (WindowShouldClose()) 
+		{
+			CloseWindow();
+			exit(0);
+		}
 		plot(internal_graph, internal_graph_name);
 
 	}

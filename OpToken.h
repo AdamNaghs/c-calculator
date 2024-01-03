@@ -9,6 +9,7 @@
 namespace tok {
 
 enum TokenType {
+    UNINITILIZED,
     OPERATOR,
     FUNCTION,
     VALUE,
@@ -17,6 +18,10 @@ enum TokenType {
 class OpToken {
 public:
     // Constructor for values
+    OpToken() {
+		type = TokenType::UNINITILIZED;
+	}
+
     explicit OpToken(cmn::value v){
         data.val = v;
         type = TokenType::VALUE;
@@ -101,13 +106,13 @@ public:
     }
         
 private:
-    enum TokenType type;
-    std::string func_name = "NOT VARIABLE";
+    enum TokenType type = UNINITILIZED;
+    std::string func_name = "NOT FUNC";
     union Data {
         cmn::value val;
         cmn::op op;
 
-        Data() {}  // Constructor
+        Data() : val(0), op(cmn::NONE) {}  // Constructor
         ~Data() {} // Destructor
     } data;
 

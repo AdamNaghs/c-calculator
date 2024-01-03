@@ -88,7 +88,7 @@ namespace cmn
         case EQUAL:
             return '=';
         default:
-            return '_';
+            return '@';
         }
     }
 }

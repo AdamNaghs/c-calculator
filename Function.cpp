@@ -12,7 +12,7 @@ namespace func {
 		s << "{\n";
 		for (std::pair<std::string, Function> pair : table)
 		{
-			s << "(Name: " << pair.first << ", Params: " << tok::vectostr(pair.second.GetParams()) << "\b, Expr: " << tok::vectostr(pair.second.GetExpr()) << "\b, Builtin Params:" << pair.second.builtin.num_params << "), \n";
+			s << "(Name: " << pair.first << ", Params: " << tok::vectostr(pair.second.GetParams()) << ", Expr: " << tok::vectostr(pair.second.GetExpr()) << ", Builtin Params:" << pair.second.builtin.num_params << "), \n";
 		}
 		s << "}\n";
 		return s.str();
@@ -32,17 +32,21 @@ namespace func {
 	std::vector<std::vector<tok::OpToken>> split_args(const std::vector<tok::OpToken>& argTokens) {
 		std::vector<std::vector<tok::OpToken>> arguments;
 		std::vector<tok::OpToken> currentArg;
+		arguments.reserve(argTokens.size());
+		currentArg.reserve(argTokens.size());
 		int parenDepth = 0;
-
+		tok::TokenType t_type;
+		cmn::op t_op;
 		for (const auto& token : argTokens)
 		{
-			auto t_type = token.GetType();
-			if (t_type == tok::TokenType::OPERATOR && token.GetOperator() == cmn::op::L_PAREN)
+			t_type = token.GetType();
+			t_op = token.GetOperator();
+			if (t_type == tok::TokenType::OPERATOR && t_op == cmn::op::L_PAREN)
 				parenDepth++;
-			else if (t_type == tok::TokenType::OPERATOR && token.GetOperator() == cmn::op::R_PAREN)
+			else if (t_type == tok::TokenType::OPERATOR && t_op == cmn::op::R_PAREN)
 				parenDepth--;
 
-			if ((t_type == tok::TokenType::OPERATOR) && token.GetOperator() == cmn::op::COMMA)
+			if ((t_type == tok::TokenType::OPERATOR) && t_op == cmn::op::COMMA)
 			{
 				if (parenDepth == 0)
 				{
@@ -65,9 +69,9 @@ namespace func {
 		return arguments;
 	}
 
-	std::vector<tok::OpToken> sub_params(std::vector<tok::OpToken> expr, std::vector<tok::OpToken> param_names, std::vector<std::vector<tok::OpToken>> v)
+	// v is a vector of vectors of tokens representing the arguments to a function
+	std::vector<tok::OpToken> sub_params(std::vector<tok::OpToken>& expr, std::vector<tok::OpToken> &param_names, std::vector<std::vector<tok::OpToken>>& v)
 	{
-		std::vector<int> func_idxs;
 		int i = 0;
 		int c = 0;
 		for (tok::OpToken name : param_names)
@@ -94,6 +98,7 @@ namespace func {
 		return expr;
 	}
 
+	// replace function call with the expression it contains
 	// return 0 on success, 1 on delay evaluation, -1 on failure
 	return_code proc_func_call(std::vector<tok::OpToken>& tokens, int funcIndex) {
 		if (funcIndex < 0 || funcIndex >= tokens.size()) return FAILURE;
@@ -145,7 +150,9 @@ namespace func {
 		}
 		bool error = false;
 		std::vector<std::vector<tok::OpToken>> collapsed = collapse_function(arguments, error);
+
 		if (error) return INVALID_INPUT;
+		
 		if (funcIt->second.builtin.available)
 		{
 			tok::OpToken val = table[funcIt->second.GetName()].run_builtin(collapsed);
@@ -160,15 +167,13 @@ namespace func {
 			}
 			return SUCCESS;
 		}
+		
 		std::vector<tok::OpToken> substitutedExpr = sub_params(funcIt->second.GetExpr(), funcIt->second.GetParams(), collapsed);
 		substitutedExpr = collapse_function(substitutedExpr,error);
+		
 		if (error) return INVALID_INPUT;
-		//rpn::sort(substitutedExpr);
-		//cmn::value val = rpn::eval(substitutedExpr);
-		//substitutedExpr.clear();
-		//substitutedExpr.emplace_back(val);
+		
 		tokens.erase(tokens.begin() + funcIndex, rightParenIt + 1 <= tokens.end() ? rightParenIt + 1 : tokens.end());
-		//tokens.erase(it, rightParenIt + 1);
 		tokens.insert(tokens.begin() + funcIndex, substitutedExpr.begin(), substitutedExpr.end());
 		return SUCCESS;
 	}
@@ -177,11 +182,13 @@ namespace func {
 
 	// left hand slice tokenized string, i.e. without =
 	// returns index of func with params or -1 on fail
+	// replaces functions that have no parameters with their expression
 	int has_function(std::vector<tok::OpToken>& v, bool& reached_depth)
 	{
 		if (v.empty()) return -1;
-		if (v.size() == 1 && v[0].GetType() != tok::TokenType::FUNCTION) return -1;
+		//if (v.size() == 1 && v[0].GetType() != tok::TokenType::FUNCTION) return -1;
 		int i;
+//#pragma omp parallel for shared(v) private(i) schedule(dynamic)
 		for (i = 0; i < v.size() && (i < MAX_DEPTH); i++)
 		{
 			if (v[i].GetType() == tok::TokenType::FUNCTION)
@@ -240,12 +247,13 @@ namespace func {
 
 	std::vector<std::vector<tok::OpToken>> collapse_function(std::vector<std::vector<tok::OpToken>> token_vecs, bool& encountered_error)
 	{
-		for (std::vector<tok::OpToken>& tokens : token_vecs) \
+#pragma omp parallel for shared(token_vecs) schedule(dynamic)
+		for (std::vector<tok::OpToken>& tokens : token_vecs) 
 		{
 			if (tokens.empty()) continue;
 			if (tokens.size() == 1 && tokens[0].GetType() == tok::TokenType::VALUE) continue; // prevent adding more calls to the stack just to yield the same value
 			tokens = collapse_function(tokens, encountered_error);
-			if (encountered_error) break;
+			if (encountered_error) continue;
 		}
 		return token_vecs;
 	}

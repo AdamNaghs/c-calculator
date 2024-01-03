@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include <map>
+#include <unordered_map>
 #include <cmath>
 #include <raylib.h>
 #include "common.h"
@@ -9,7 +10,6 @@
 namespace plot
 {
 
-#define POINT_SIZE 2
 	class Point
 	{
 	public:
@@ -33,10 +33,8 @@ namespace plot
 		bool operator!=(const Point& other) const {
 			return !(*this == other);
 		}
-		Point as_negative() {
-			return Point(-x, -y);
-		}
 	};
+
 
 	class LineSegment {
 	public:
@@ -45,35 +43,51 @@ namespace plot
 
 		LineSegment(const Point& start, const Point& end) : start(start), end(end) {}
 
-		void print() const {
-			std::cout << "Start: (" << start.x << ", " << start.y << "), "
-				<< "End: (" << end.x << ", " << end.y << ")\n";
-			mw::MessageWindow::getInstance().add_message("Start: (" + std::to_string(start.x) + ", " + std::to_string(start.y) + "), "
-							+ "End: (" + std::to_string(end.x) + ", " + std::to_string(end.y) + ")\n");
-		}
 		bool operator<(const LineSegment& other) const {
-			if (start != other.start) return start < other.start;
-			return end < other.end;
+			return end < other.end || start < other.start;
+		}
+		bool operator==(const LineSegment& other) const {
+			return (start == other.start && end == other.end);
+		}
+		bool operator<=(const LineSegment& other) const {
+			return (*this < other || *this == other);
 		}
 
 	};
 
-	std::map<LineSegment, Color> create_line_segment(const std::map<Point, Color>& points) {
-		std::map<LineSegment, Color> lineSegments;
-
-		if (points.empty()) {
-			return lineSegments;
+	struct PointHash {
+		std::size_t operator()(const Point& p) const {
+			std::size_t h1 = std::hash<double>()(p.x);
+			std::size_t h2 = std::hash<double>()(p.y);
+			// The magic number below is a large prime number
+			return h1 ^ (h2 * 0x9e3779b9 + (h1 << 6) + (h1 >> 2));
 		}
+	};
 
-		auto last = points.begin();
-		for (auto it = std::next(points.begin()); it != points.end(); ++it) {
-			LineSegment l(last->first, it->first);
-			lineSegments[l] = last->second;
-			last = it;
+	struct LineSegmentHash {
+		std::size_t operator()(const LineSegment& ls) const {
+			PointHash pointHasher;
+			std::size_t h1 = pointHasher(ls.start);
+			std::size_t h2 = pointHasher(ls.end);
+			return h1 ^ (h2 * 0x9e3779b9 + (h1 << 6) + (h1 >> 2)); // Combine the hash values
 		}
+	};
+	//std::map<LineSegment, Color> make_line_map(const std::map<Point, Color>& points) {
+	//	std::map<LineSegment, Color> lineSegments;
 
-		return lineSegments;
-	}
+	//	if (points.empty()) {
+	//		return lineSegments;
+	//	}
+
+	//	auto last = points.begin();
+	//	for (auto it = std::next(points.begin()); it != points.end(); ++it) {
+	//		LineSegment l(last->first, it->first);
+	//		lineSegments[l] = last->second;
+	//		last = it;
+	//	}
+
+	//	return lineSegments;
+	//}
 
 	class Graph
 	{
@@ -90,12 +104,18 @@ namespace plot
 			y_axis.start = y_start;
 			y_axis.end = y_end;
 			bgcolor = DARKGRAY;
+			gridcolor = GRAY;
 			fgcolor = BLUE;
-			gridcolor = WHITE;
 			axiscolor = RED;
 			//points.reserve(abs(x_start) + abs(x_end) + abs(y_start) + abs(y_end));
 		}
-		Graph(){}
+		Graph()
+		{
+			bgcolor = DARKGRAY;
+			gridcolor = GRAY;
+			fgcolor = BLUE;
+			axiscolor = RED;
+		}
 		~Graph()
 		{
 			lines.clear();
@@ -104,11 +124,8 @@ namespace plot
 
 		void add_line(LineSegment line)
 		{
-			//if (!is_in_range(line.start) || !is_in_range(line.end)) return;
 			lines[line] = fgcolor;
 		}
-
-		
 
 		bool is_in_range(Point p)
 		{
@@ -124,32 +141,33 @@ namespace plot
 			//normalized_points.clear();
 		}
 
-		Point normalize_point(Point p)
+		Point relative_point(Point p)
 		{
 			return Point((p.x - x_axis.start) / (x_axis.end - x_axis.start), (p.y - y_axis.start) / (y_axis.end - y_axis.start));
 		}
 
 		void draw_axis()
 		{
-			int x_axis_y = loc.y + dim.height * (1.0 - (0.0 - y_axis.start) / (y_axis.end - y_axis.start));
-			int y_axis_x = loc.x + dim.width * ((0.0 - x_axis.start) / (x_axis.end - x_axis.start));
+			int x_axis_y = (int)(loc.y + dim.height * (1.0 - (0.0 - y_axis.start) / (y_axis.end - y_axis.start)));
+			int y_axis_x =(int) (loc.x + dim.width * ((0.0 - x_axis.start) / (x_axis.end - x_axis.start)));
 			DrawLine(loc.x, x_axis_y, loc.x + dim.width, x_axis_y, axiscolor);
 			DrawLine(y_axis_x, loc.y, y_axis_x, loc.y + dim.height, axiscolor);
 		}
 
 		void draw_ticks()
 		{
-			int x_axis_y = loc.y + dim.height * (1.0 - (0.0 - y_axis.start) / (y_axis.end - y_axis.start));
-			int y_axis_x = loc.x + dim.width * ((0.0 - x_axis.start) / (x_axis.end - x_axis.start));
+			int x_axis_y = (int)(loc.y + dim.height * (1.0 - (0.0 - y_axis.start) / (y_axis.end - y_axis.start)));
+			int y_axis_x = (int)(loc.x + dim.width * ((0.0 - x_axis.start) / (x_axis.end - x_axis.start)));
 			// Draw x-axis ticks
+//#pragma omp parallel for
 			for (int i = x_axis.start; i < x_axis.end; ++i) {
-				int tickX = loc.x + (i - x_axis.start) * dim.width / (x_axis.end - x_axis.start);
+				int tickX = (int)(loc.x + (i - x_axis.start) * dim.width / (x_axis.end - x_axis.start));
 				DrawLine(tickX, x_axis_y - 5, tickX, x_axis_y + 5, fgcolor);
 			}
-
 			// Draw y-axis ticks
+//#pragma omp parallel for
 			for (int i = y_axis.start; i <= y_axis.end; ++i) {
-				int tickY = loc.y + (1.0 - (i - y_axis.start) / (double)(y_axis.end - y_axis.start)) * dim.height;
+				int tickY = (int)(loc.y + (1.0 - (i - y_axis.start) / (double)(y_axis.end - y_axis.start)) * dim.height);
 				DrawLine(y_axis_x - 5, tickY, y_axis_x + 5, tickY, fgcolor);
 			}
 		}
@@ -157,14 +175,16 @@ namespace plot
 		void draw_grid()
 		{
 			// Draw x-axis grid lines
+//#pragma omp parallel for
 			for (int i = x_axis.start; i < x_axis.end; ++i) {
 				int x = loc.x + (i - x_axis.start) * dim.width / (x_axis.end - x_axis.start);
 				DrawLine(x, loc.y, x, loc.y + dim.height, gridcolor);
 			}
 
 			// Draw y-axis grid lines
+//#pragma omp parallel for
 			for (int i = y_axis.start; i <= y_axis.end; ++i) {
-				int y = loc.y + (1.0 - (i - y_axis.start) / (double)(y_axis.end - y_axis.start)) * dim.height;;
+				int y = (int) (loc.y + (1.0 - (i - y_axis.start) / (double)(y_axis.end - y_axis.start)) * dim.height);
 				DrawLine(loc.x, y, loc.x + dim.width, y, gridcolor);
 			}
 		}
@@ -185,18 +205,20 @@ namespace plot
 
 		void plot()
 		{
-			#pragma omp parallel for
+#pragma omp parallel for
 			for (auto& line : lines)
 			{
-				Point p = normalize_point(line.first.start);
-				Point q = normalize_point(line.first.end);
+				Point p = relative_point(line.first.start);
+				Point q = relative_point(line.first.end);
 				double inverted_y = 1.0 - p.y;
-				int x1 = loc.x + p.x * dim.width;
-				int y1 = loc.y + inverted_y * dim.height;
+				float x1 = (loc.x + p.x * dim.width);
+				float y1 = (loc.y + inverted_y * dim.height);
 				double inverted_y2 = 1.0 - q.y;
-				int x2 = loc.x + q.x * dim.width;
-				int y2 = loc.y + inverted_y2 * dim.height;
-				DrawLine(x1, y1, x2, y2, line.second);
+				float x2 = (loc.x + q.x * dim.width);
+				float y2 = (loc.y + inverted_y2 * dim.height);
+
+				//DrawLine(x1, y1, x2, y2, line.second);
+				DrawLineV({ x1, y1 }, { x2, y2 }, line.second);
 			}
 		}
 
@@ -209,8 +231,24 @@ namespace plot
 		{
 			this->fgcolor = color;
 		}
+		void set_x_axis(int start, int end)
+		{
+			this->x_axis.start = start;
+			this->x_axis.end = end;
+		}
+		void set_y_axis(int start, int end)
+		{
+			this->y_axis.start = start;
+			this->y_axis.end = end;
+		}
 
-		std::map<LineSegment, Color> get_lines()
+
+		/*std::map<LineSegment, Color> get_lines()
+		{
+			return lines;
+		}*/
+		
+		std::unordered_map<LineSegment, Color,LineSegmentHash> get_lines()
 		{
 			return lines;
 		}
@@ -277,14 +315,14 @@ namespace plot
 
 
 		double precision_x() const {
-			double x_range = abs(x_axis.end - x_axis.start);
-			double pixelsPerUnitX = static_cast<double>(dim.width) / x_range;
+			double x_range = abs(x_axis.end) +  abs(x_axis.start);
+			double pixelsPerUnitX = ((double)dim.width) / x_range;
 			return 1 / pixelsPerUnitX;
 		}
 
 		double precision_y() const {
-			double y_range = abs(x_axis.end - x_axis.start);
-			double pixelsPerUnitY = static_cast<double>(dim.height) / y_range;
+			double y_range = abs(x_axis.end) + abs(x_axis.start);
+			double pixelsPerUnitY = ((double)dim.height) / y_range;
 			return 1 / pixelsPerUnitY;
 		}
 
@@ -332,7 +370,8 @@ namespace plot
 			int start, end;
 		} x_axis, y_axis;
 		//std::map<plot::Point, Color> points;
-		std::map<LineSegment,Color> lines;
+		std::unordered_map<LineSegment,Color,LineSegmentHash> lines;
+		//std::map<LineSegment,Color> lines;
 		//std::vector<Point> normalized_points;
 		Color bgcolor;
 		Color fgcolor;

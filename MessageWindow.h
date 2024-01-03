@@ -13,7 +13,7 @@ namespace mw
 		std::vector<std::string> messages;
 		Font font;
 		int spacing = 5;
-		Color cursor_color = RED;
+		Color cursor_color = SKYBLUE;
 		Color text_color = WHITE;
 		Color bg_color = BLACK;
 
@@ -50,11 +50,15 @@ namespace mw
 			}
 		}
 
+		void clear()
+		{
+			messages.clear();
+		}
 
 		void print(std::string message)
 		{
 			add_message(message);
-			add_message(" ");
+			//add_message(" ");
 			//add_message(" ");
 		}
 
@@ -71,37 +75,45 @@ namespace mw
 		}
 
 		void draw() {
-			DrawRectangle(locx, locy, width, height, bg_color);
+			DrawRectangle(locx, locy, width + locx, height + locy, bg_color);
 
-			// Start Y position from the top of the message window
-			int currentY = locy + height; // Assuming origin (0,0) is top-left of the window
-
-			for (auto it = messages.rbegin(); it != messages.rend(); ++it) {
+			int currentY = locy + height;
+			std::vector<std::string>::reverse_iterator it = messages.rbegin();
+			std::vector<std::ptrdiff_t> indicesToRemove;
+//#pragma omp parallel for ordered schedule(dynamic)
+			while (it != messages.rend()) {
 				std::string message = *it;
 				if (message.empty()) message = " ";
 
 				int fontSize = font_size(message);
-				Vector2 textSize = MeasureTextEx(font, message.c_str(), fontSize, spacing);
+				Vector2 textSize = MeasureTextEx(font, message.c_str(), (float)fontSize, (float)spacing);
 
-				// Update Y position to draw the text (subtract text height and some padding)
-				currentY -= (int)textSize.y + 2; // 'padding' is some extra space between lines
+				currentY -= (int)textSize.y + 2;
 
-				// Check if the message fits vertically in the window
 				if (currentY < locy) {
-					break; // Stop drawing if there is no more vertical space
+					indicesToRemove.push_back(std::distance(it, messages.rend()) - 1);
+					++it;
+					continue;
 				}
 
-				Vector2 textPosition = { locx, (float)currentY };
-				DrawTextEx(font, message.c_str(), textPosition, fontSize, spacing, text_color);
+				Vector2 textPosition = { (float)locx, (float)currentY };
+				DrawTextEx(font, message.c_str(), textPosition, (float)fontSize, (float)spacing, text_color);
 
-				if (it == messages.rbegin())
-					if (cursor >= 0 && cursor <= message.length())
-					{
-						Vector2 cursorPosition = { locx + MeasureTextEx(font, message.substr(0, cursor).c_str(), fontSize, spacing).x, (float)currentY };
-						DrawLineV(cursorPosition, { cursorPosition.x, cursorPosition.y + textSize.y }, cursor_color);
-					}
+				if (it == messages.rbegin() && cursor >= 0 && cursor <= message.length()) {
+					Vector2 cursorPosition = { locx + MeasureTextEx(font, message.substr(0, cursor).c_str(), (float) fontSize, (float)spacing).x, (float)currentY };
+					DrawLineV(cursorPosition, { cursorPosition.x, cursorPosition.y + textSize.y }, cursor_color);
+				}
+
+				++it;
 			}
+
+			// Remove messages that are outside the drawing area
+			for (ptrdiff_t index : indicesToRemove) {
+				messages.erase(messages.begin() + ((size_t)index));
+			}
+			DrawLine(locx + width, locy, locx + width, locy + height, cursor_color);
 		}
+
 
 		void replace_back(std::string message)
 		{
@@ -169,12 +181,12 @@ namespace mw
 		int font_size(std::string text) {
 			if (text.empty()) return 0;
 			int fontSize = 50; // Start with a reasonable font size
-			Vector2 textSize = MeasureTextEx(font, &text.front(), fontSize, spacing);
+			Vector2 textSize = MeasureTextEx(font, &text.front(), (float)fontSize, (float)spacing);
 
 			// Reduce font size until the text width fits within the window width
 			while (textSize.x > width && fontSize > 1) {
 				fontSize--;
-				textSize = MeasureTextEx(font, text.c_str(), fontSize, spacing);
+				textSize = MeasureTextEx(font, text.c_str(), (float)fontSize,(float) spacing);
 			}
 
 			return fontSize;

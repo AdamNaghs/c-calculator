@@ -1,4 +1,4 @@
-#include <stack>
+#include <vector>
 #include <string>
 #include <iostream>
 #include "rpn.h"
@@ -12,42 +12,43 @@ namespace rpn
 	// sorting removes commas and parenthesis
 	void sort(std::vector<tok::OpToken>& v)
 	{
-		std::stack<tok::OpToken> ops;
-		std::stack<tok::OpToken> ret;
-
+		std::vector<tok::OpToken> ops; // use as stack
+		std::vector<tok::OpToken> ret;
+		ops.reserve(v.size());
+		ret.reserve(v.size());
 		if (debug)
 		{
 			std::cout << "Sorting: " << tok::vectostr(v) << '\n' << std::endl;
-			mw::MessageWindow::getInstance().print("Sorting: " + tok::vectostr(v) + '\n');
+			mw::MessageWindow::getInstance().print("Sorting: " + tok::vectostr(v));
 		}
-
+		tok::OpToken tok;
 		for (int i = 0; i < v.size();i++)
 		{
-			tok::OpToken tok = v[i];
+			tok = v[i];
 			// if digit push to ret
 			cmn::op op = tok.GetOperator();
 			switch (op)
 			{
 			case cmn::op::NONE:
 			{
-				ret.push(tok);
+				ret.push_back(tok);
 				break;
 			}
 			case cmn::op::L_PAREN:
 			{
-				ops.push(tok);
+				ops.push_back(tok);
 				break;
 			}
 			case cmn::op::R_PAREN:
 			{
 				if (ops.empty()) break;
-				tok::OpToken tmp = ops.top();
-				ops.pop();
+				tok::OpToken tmp = ops.back();
+				ops.pop_back();
 				while (!ops.empty() && (tmp.GetOperator() != cmn::op::L_PAREN))
 				{
-					ret.push(tmp);
-					tmp = ops.top();
-					ops.pop();
+					ret.push_back(tmp);
+					tmp = ops.back();
+					ops.pop_back();
 				}
 
 				break;
@@ -59,19 +60,19 @@ namespace rpn
 			case cmn::op::POW:
 			{
 				// While there are operators on the ops stack and the operator at the top of the ops stack has greater or equal precedence
-				while (!ops.empty() && cmn::opcmp(ops.top().GetOperator(), tok.GetOperator()) != -1)
+				while (!ops.empty() && cmn::opcmp(ops.back().GetOperator(), tok.GetOperator()) != -1)
 				{
 					// Pop operators from the ops stack onto the ret stack
-					ret.push(ops.top());
-					ops.pop();
+					ret.push_back(ops.back());
+					ops.pop_back();
 				}
 				// Push the current operator onto the ops stack
-				ops.push(tok);
+				ops.push_back(tok);
 				break;
 			}
 			default:
 				// not a value or a operator
-				ret.push(tok); // add to ret incase is was desired by user
+				ret.push_back(tok); // add to ret incase is was desired by user
 				break;
 			}
 
@@ -85,8 +86,8 @@ namespace rpn
 					std::vector<tok::OpToken> tmp;
 					std::cout << "Ret: ";
 					mw::MessageWindow::getInstance().print("Ret: ");
-					for (auto dump = ret; !dump.empty(); dump.pop())
-						tmp.insert(tmp.begin(), dump.top());
+					for (auto dump = ret; !dump.empty(); dump.pop_back())
+						tmp.insert(tmp.begin(), dump.back());
 					for (auto t : tmp)
 					{
 						std::cout << t << " ";
@@ -102,8 +103,8 @@ namespace rpn
 					std::cout << "Ops: ";
 					mw::MessageWindow::getInstance().print("Ops: ");
 					std::vector<tok::OpToken> tmp;
-					for (auto dump = ops; !dump.empty(); dump.pop())
-						tmp.insert(tmp.begin(), dump.top());
+					for (auto dump = ops; !dump.empty(); dump.pop_back())
+						tmp.insert(tmp.begin(), dump.back());
 					for (auto t : tmp)
 					{
 						std::cout << t << " ";
@@ -120,25 +121,17 @@ namespace rpn
 			// check if at the top of 
 		   // the stack there is higher precedence
 		}
-		// manually convert stack to vec
 		while (!ops.empty())
 		{
-			ret.push(ops.top());
-			ops.pop();
+			ret.push_back(ops.back());
+			ops.pop_back();
 		}
-		v.clear();
-		v.reserve(ret.size());
-		while (!ret.empty())
-		{
-			v.insert(v.begin(), ret.top());
-			ret.pop();
-		}
-
+		v = ret;
 	}
 
 	cmn::value eval(const std::vector<tok::OpToken>& tokens) {
-		std::stack<cmn::value> operandStack;
-
+		std::vector<cmn::value> operandStack;
+		operandStack.reserve(tokens.size());
 		for (const tok::OpToken& token : tokens) {
 			if (!token.IsOperator()) {
 				// Push number onto the stack
@@ -149,33 +142,33 @@ namespace rpn
 					mw::MessageWindow::getInstance().print("Invalid input. Function '" + token.GetName() + "' not defined.\n");
 					return 0;
 				}
-				operandStack.push(token.GetValue());
+				operandStack.push_back(token.GetValue());
 			}
 			else {
 				// Pop operands from the stack
 				if (operandStack.empty()) goto not_enough_operands;
-				cmn::value right = operandStack.top();
-				operandStack.pop();
+				cmn::value right = operandStack.back();
+				operandStack.pop_back();
 				if (operandStack.empty()) return right;
-				cmn::value left = operandStack.top();
-				operandStack.pop();
+				cmn::value left = operandStack.back();
+				operandStack.pop_back();
 
 				// Apply the operator
 				switch (token.GetOperator()) {
 				case cmn::op::ADD:
-					operandStack.push(left + right);
+					operandStack.push_back(left + right);
 					break;
 				case cmn::op::SUB:
-					operandStack.push(left - right);
+					operandStack.push_back(left - right);
 					break;
 				case cmn::op::MULT:
-					operandStack.push(left * right);
+					operandStack.push_back(left * right);
 					break;
 				case cmn::op::DIV:;
-					operandStack.push(left / right); // Ensure division by zero is handled
+					operandStack.push_back(left / right); // Ensure division by zero is handled
 					break;
 				case cmn::op::POW:
-					operandStack.push(std::pow(left, right)); // Requires <cmath>
+					operandStack.push_back(std::pow(left, right)); // Requires <cmath>
 					break;
 					// Add cases for other operators as needed
 				}
@@ -190,7 +183,7 @@ namespace rpn
 			mw::MessageWindow::getInstance().print("Invalid input. Not enough operands, cannot solve expression.\n");
 			return 0;
 		}
-		return operandStack.top();
+		return operandStack.back();
 	}
 
 }
