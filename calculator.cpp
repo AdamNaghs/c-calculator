@@ -233,8 +233,9 @@ void load_builtin_functions(void)
 			if (-1 != (tmp = check_param_types(s, { tok::val_token , tok::val_token }))) return s[tmp][0]; // not checking last two params because can be any type
 			rpn::sort(s[0]);
 			rpn::sort(s[1]);
-			cmn::value end = rpn::eval(s[1]);
-			cmn::value start = rpn::eval(s[0]);
+			cmn::value tmp0 = rpn::eval(s[1]), tmp1 = rpn::eval(s[0]);
+			cmn::value end = std::max(tmp0, tmp1);
+			cmn::value start = std::min(tmp0, tmp1);
 			std::vector<size_t> idxs;
 			std::vector<tok::OpToken> expr_vec = s[3];
 			for (int i = 0; i < s[3].size(); i++)
@@ -247,7 +248,7 @@ void load_builtin_functions(void)
 			}
 			cmn::value ret = 0;
 #pragma omp parallel for reduction(+:ret)
-			for (size_t n = (size_t)start; (start > end) ? (n > end) : (n < end);(start > end) ? (n--) : (n++))
+			for (size_t n = (size_t)start + 1;n < end;n++)
 			{
 				auto expr_copy = expr_vec;
 				for (size_t idx : idxs)
@@ -260,6 +261,49 @@ void load_builtin_functions(void)
 				}
 				rpn::sort(expr_copy);
 				ret += rpn::eval(expr_copy);
+			}
+			return tok::OpToken(ret);
+		});
+	// copy and paste of sum with operator changed to multiplication
+	func::add_builtin_func("prod", 4, [](std::vector<std::vector<tok::OpToken>> s)
+		{
+			for (int i = 0; i < 2; i++)
+			{
+				for (auto& t : s[i])
+					if (t.GetType() == tok::FUNCTION && func::table.find(t.GetName()) == func::table.end()) return t;
+			}
+			int tmp;
+			if (-1 != (tmp = check_param_types(s, { tok::val_token , tok::val_token }))) return s[tmp][0]; // not checking last two params because can be any type
+			rpn::sort(s[0]);
+			rpn::sort(s[1]);
+			cmn::value tmp0 = rpn::eval(s[1]), tmp1 = rpn::eval(s[0]);
+			cmn::value end = std::max(tmp0, tmp1);
+			cmn::value start = std::min(tmp0,tmp1);
+			std::vector<size_t> idxs;
+			std::vector<tok::OpToken> expr_vec = s[3];
+			for (int i = 0; i < s[3].size(); i++)
+			{
+				if (s[3][i].GetType() == tok::FUNCTION && s[2][0].GetType() == tok::FUNCTION && s[3][i].GetName() == s[2][0].GetName()) idxs.emplace_back(i);
+			}
+			for (auto t : expr_vec)
+			{
+				if (t.GetType() == tok::FUNCTION && t.GetName() != s[2][0].GetName() && func::table.find(t.GetName()) == func::table.end()) return t;
+			}
+			cmn::value ret = start;
+#pragma omp parallel for reduction(+:ret)
+			for (size_t n = (size_t)start+1;n < end;n++)
+			{
+				auto expr_copy = expr_vec;
+				for (size_t idx : idxs)
+					expr_copy[idx] = tok::OpToken((cmn::value)n);
+				bool error = false;
+				expr_copy = func::collapse_function(expr_copy, error);
+				if (error)
+				{
+					return tok::OpToken(0);
+				}
+				rpn::sort(expr_copy);
+				ret *= rpn::eval(expr_copy);
 			}
 			return tok::OpToken(ret);
 		});
