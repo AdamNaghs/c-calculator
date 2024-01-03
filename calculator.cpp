@@ -343,6 +343,11 @@ void load_builtin_functions(void)
 					std::max((int)s[2][0].GetValue(), (int)s[3][0].GetValue()));
 				message_window.bg_color = g.get_bgcolor();
 			}
+			else
+			{
+				g.set_x_axis(std::min((int)start, (int)end), std::max((int)start, (int)end));
+				g.set_y_axis(std::min((int)s[2][0].GetValue(), (int)s[3][0].GetValue()), std::max((int)s[2][0].GetValue(), (int)s[3][0].GetValue()));
+			}
 			if (calc.is_alternating())
 				g.set_fgcolor(calc.get_next_color());
 			std::string name = "plot(";
@@ -909,10 +914,10 @@ int main(void)
 {
 	load_builtin_functions();
 	calc.alternate_colors();
-	calc.parse_expr("plot(-10,10,-10,10,x,cos(10*x))");
+	calc.parse_expr("plot(-10,10,-10,10,x,cos(x))");
 	calc.parse_expr("xint(x,sin(x))");
-	benchmark();
 	calc.input_loop();
+	benchmark();
 	calc.parse_expr("eX(x) = sum(0,100,n,(x^n)/fact(n))");
 	calc.parse_expr("plot_add(x,eX(x))"); // graph of e^x
 	calc.parse_expr("plot_add(x,fact(x))");

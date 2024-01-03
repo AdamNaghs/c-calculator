@@ -231,6 +231,17 @@ namespace plot
 		{
 			this->fgcolor = color;
 		}
+		void set_x_axis(int start, int end)
+		{
+			this->x_axis.start = start;
+			this->x_axis.end = end;
+		}
+		void set_y_axis(int start, int end)
+		{
+			this->y_axis.start = start;
+			this->y_axis.end = end;
+		}
+
 
 		/*std::map<LineSegment, Color> get_lines()
 		{
