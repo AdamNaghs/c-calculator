@@ -307,6 +307,165 @@ void load_builtin_functions(void)
 			return tok::OpToken(ret);
 		});
 	// takes x-axist start & end, y-axis start & end, sole variable name, expression;
+	func::add_builtin_func("xint", 2, [](std::vector<std::vector<tok::OpToken>> s)
+		{
+			auto start_time = std::chrono::high_resolution_clock::now();
+			std::vector<size_t> idxs;
+			std::vector<tok::OpToken> var_vec = s[0];
+			std::vector<tok::OpToken> expr_vec = s[1];
+			for (int i = 0; i < expr_vec.size(); i++)
+			{
+				if (expr_vec[i].GetType() == tok::FUNCTION && expr_vec[i].GetName() == var_vec[0].GetName()) idxs.emplace_back(i);
+			}
+			cmn::value ret = 0;
+			auto pair = calc.get_y_axis();
+			cmn::value start = pair.first;
+			cmn::value end = pair.second;
+			double step = calc.get_precision().first;
+			std::string name = "xint(";
+			for (auto& v : s)
+			{
+				name.append(tok::vectostr(v) + ",");
+			}
+			name.append("\b)");
+			plot::Point last;
+			bool first = true;
+			double x_axis_range = abs(calc.get_graph().get_x_end()) + abs(calc.get_graph().get_x_start());
+			// Set the threshold as a small percentage of the x-axis range
+			const double threshold = step * 2;//calc.get_precision().second;
+			if (rpn::debug)
+			{
+				std::cout << "{\n";
+				mw::MessageWindow::getInstance().print("{\n");
+			}
+			if (calc.is_alternating())
+				calc.set_fgcolor(calc.get_next_color());
+			std::vector<double> x_ints;
+#pragma omp parallel for
+			for (cmn::value n = start; (start > end) ? (n > end) : (n < end); n += (start > end) ? (-step) : (step))
+			{
+				auto expr_copy = expr_vec;
+				for (size_t idx : idxs)
+				{
+					expr_copy[idx] = tok::OpToken((cmn::value)n);
+				}
+				bool error = false;
+				std::vector<tok::OpToken> collapse = func::collapse_function(expr_copy, error);
+				if (error)
+				{
+					return tok::OpToken(0);
+				}
+				rpn::sort(collapse);
+				ret = rpn::eval(collapse);
+				if (ret == 0 || abs(ret) <= (threshold))
+				{
+					x_ints.emplace_back(n);
+				}
+				if (rpn::debug)
+				{
+					std::cout << "(x:" << n << ", y:" << ret << "),\n";
+					mw::MessageWindow::getInstance().print("(x:" + std::to_string(n) + ", y:" + std::to_string(ret) + "),\n");
+				}
+
+				//calc.add_point(plot::Point(n, ret));
+			}
+			auto end_time = std::chrono::high_resolution_clock::now();
+			if (rpn::debug)
+			{
+				std::cout << "\b}\n";
+				mw::MessageWindow::getInstance().print("\b}\n");
+			}
+			if (!x_ints.empty())
+			{
+				sort(x_ints.begin(), x_ints.end());
+
+				std::vector<double> averagedInts;
+				averagedInts.reserve(x_ints.size());
+				double sum = 0;
+				int count = 0;
+				double currentGroupStart = x_ints[0];
+
+				for (int i = 0; i < x_ints.size(); ++i) {
+					if (std::fabs(x_ints[i] - currentGroupStart) <= threshold * 2) {
+						// Add to current group
+						sum += x_ints[i];
+						++count;
+					}
+					else {
+						// Average the current group and start a new group
+						averagedInts.push_back(sum / count);
+						currentGroupStart = x_ints[i];
+						sum = x_ints[i];
+						count = 1;
+					}
+				}
+
+				// Don't forget to add the last group
+				if (count > 0) {
+					averagedInts.push_back(sum / count);
+				}
+				x_ints = averagedInts;
+			}
+			std::chrono::duration<double, std::milli> duration = end_time - start_time;
+			for (auto& x : x_ints)
+			{
+				std::cout << "x = " << x << "\n";
+				mw::MessageWindow::getInstance().print("x = " + std::to_string(x) + "\n");
+			}
+			std::cout << "xint took " << duration.count() << "ms\n";
+			mw::MessageWindow::getInstance().print("xint took " + std::to_string(duration.count()) + "ms\n");
+			if (x_ints.size() == 0) return tok::OpToken(0);
+			return tok::OpToken(*x_ints.begin());
+		});	
+	// takes range begin, end, step, sole variable name, expression;
+	func::add_builtin_func("step", 5, [](std::vector<std::vector<tok::OpToken>> s)
+		{
+			check_first_param_type(s);
+			for (int i = 0; i < 3; i++)
+			{
+				rpn::sort(s[i]);
+			}
+			int tmp;
+			if (-1 != (tmp = check_param_types(s, { tok::val_token , tok::val_token, tok::val_token }))) return s[tmp][0]; // not checking last two params because can be any type
+			cmn::value step = s[2][0].GetValue();
+			if (step <= 0)
+			{
+				std::cerr << "Invalid input. Step must be greater than 0.\n";
+				mw::MessageWindow::getInstance().print("Invalid input. Step must be greater than 0.\n");
+				return tok::OpToken(0);
+			}
+			std::vector<size_t> idxs;
+			std::vector<tok::OpToken> expr_vec = s[4];
+			for (int i = 0; i < expr_vec.size(); i++)
+			{
+				if (expr_vec[i].GetType() == tok::FUNCTION && expr_vec[i].GetName() == s[3][0].GetName()) idxs.emplace_back(i);
+			}
+			cmn::value ret = 0;
+			cmn::value end = rpn::eval(s[1]);
+			cmn::value start = rpn::eval(s[0]);
+			std::cout << "{\n";
+			mw::MessageWindow::getInstance().print("{\n");
+			for (double n = start; (start > end) ? (n > end) : (n < end); n += (start > end) ? (-step) : (step))
+			{
+				auto expr_copy = expr_vec;
+				for (size_t idx : idxs)
+					expr_copy[idx] = tok::OpToken((cmn::value)n);
+				bool error = false;
+				auto collapse = func::collapse_function(expr_copy, error);
+				if (error)
+				{
+					return tok::OpToken(0);
+				}
+				rpn::sort(collapse);
+				ret = rpn::eval(collapse);
+				std::cout << "(x:" << n << ", y:" << ret << "),\n";
+				mw::MessageWindow::getInstance().print("(x:" + std::to_string(n) + ", y:" + std::to_string(ret) + "),\n");
+			}
+			std::cout << "\b}\n";
+			mw::MessageWindow::getInstance().print("\b}\n");
+			return tok::OpToken(ret);
+		});
+	// takes startx, endx, starty, endy, variable, expression;
 	func::add_builtin_func("plot", 6, [](std::vector<std::vector<tok::OpToken>> s)
 		{
 			auto start_time = std::chrono::high_resolution_clock::now();
@@ -333,20 +492,23 @@ void load_builtin_functions(void)
 			cmn::value start = s[0][0].GetValue();
 			cmn::value end = s[1][0].GetValue();
 			// get_graph returns a reference to the graph
+			int x_start = std::min((int)start, (int)end),
+				x_end   = std::max((int)start, (int)end), 
+				y_start = std::min((int)s[2][0].GetValue(), (int)s[3][0].GetValue()),
+				y_end   = std::max((int)s[2][0].GetValue(), (int)s[3][0].GetValue());
+
 			plot::Graph& g = calc.get_graph();
 			if (!calc.is_plotting())
 			{
 				g = plot::Graph(GRAPH_X, GRAPH_Y, GRAPH_WIDTH, GRAPH_HEIGHT, 
-					std::min((int)start, (int)end), 
-					std::max((int)start, (int)end), 
-					std::min((int)s[2][0].GetValue(), (int)s[3][0].GetValue()), 
-					std::max((int)s[2][0].GetValue(), (int)s[3][0].GetValue()));
+					x_start,x_end,y_start,y_end);
 				message_window.bg_color = g.get_bgcolor();
 			}
 			else
 			{
-				g.set_x_axis(std::min((int)start, (int)end), std::max((int)start, (int)end));
-				g.set_y_axis(std::min((int)s[2][0].GetValue(), (int)s[3][0].GetValue()), std::max((int)s[2][0].GetValue(), (int)s[3][0].GetValue()));
+				g.set_x_axis(x_start,x_end);
+				g.set_y_axis(y_start,y_end);
+				g.clear();
 			}
 			if (calc.is_alternating())
 				g.set_fgcolor(calc.get_next_color());
@@ -369,7 +531,7 @@ void load_builtin_functions(void)
 			// Set the threshold as a small percentage of the y-axis range
 			const double threshold = POINT_THRESHOLD * y_axis_range; // Example: 5% of the y-axis range
 #pragma omp parallel for // num_threads(15)
-			for (double n = start; (start > end) ? (n > end) : (n < end); n += (start > end) ? (-step) : (step))
+			for (double n = x_start; n < x_end; n += step)
 			{
 				auto expr_copy = expr_vec;
 				for (size_t idx : idxs)
@@ -485,116 +647,6 @@ void load_builtin_functions(void)
 			std::cout << "Plot took " << duration.count() << "ms\n";
 			mw::MessageWindow::getInstance().print("Plot took " + std::to_string(duration.count()) + "ms\n");
 			return tok::OpToken(ret);
-		});	
-	func::add_builtin_func("xint", 2, [](std::vector<std::vector<tok::OpToken>> s)
-		{
-			auto start_time = std::chrono::high_resolution_clock::now();
-			std::vector<size_t> idxs;
-			std::vector<tok::OpToken> var_vec = s[0];
-			std::vector<tok::OpToken> expr_vec = s[1];
-			for (int i = 0; i < expr_vec.size(); i++)
-			{
-				if (expr_vec[i].GetType() == tok::FUNCTION && expr_vec[i].GetName() == var_vec[0].GetName()) idxs.emplace_back(i);
-			}
-			cmn::value ret = 0;
-			auto pair = calc.get_y_axis();
-			cmn::value start = pair.first;
-			cmn::value end = pair.second;
-			double step = calc.get_precision().first;
-			std::string name = "xint(";
-			for (auto& v : s)
-			{
-				name.append(tok::vectostr(v) + ",");
-			}
-			name.append("\b)");
-			plot::Point last;
-			bool first = true;
-			double x_axis_range = abs(calc.get_graph().get_x_end()) + abs(calc.get_graph().get_x_start());
-			// Set the threshold as a small percentage of the x-axis range
-			const double threshold = step * 2;//calc.get_precision().second;
-			if (rpn::debug)
-			{
-				std::cout << "{\n";
-				mw::MessageWindow::getInstance().print("{\n");
-			}
-			if (calc.is_alternating())
-				calc.set_fgcolor(calc.get_next_color());
-			std::vector<double> x_ints;
-#pragma omp parallel for
-			for (cmn::value n = start; (start > end) ? (n > end) : (n < end); n += (start > end) ? (-step) : (step))
-			{
-				auto expr_copy = expr_vec;
-				for (size_t idx : idxs)
-				{
-					expr_copy[idx] = tok::OpToken((cmn::value)n);
-				}
-				bool error = false;
-				std::vector<tok::OpToken> collapse = func::collapse_function(expr_copy, error);
-				if (error)
-				{
-					return tok::OpToken(0);
-				}
-				rpn::sort(collapse);
-				ret = rpn::eval(collapse);
-				if (ret == 0 || abs(ret) <= (threshold))
-				{
-					x_ints.emplace_back(n);
-				}
-				if (rpn::debug)
-				{
-					std::cout << "(x:" << n << ", y:" << ret << "),\n";
-					mw::MessageWindow::getInstance().print("(x:" + std::to_string(n) + ", y:" + std::to_string(ret) + "),\n");
-				}
-
-				//calc.add_point(plot::Point(n, ret));
-			}
-			auto end_time = std::chrono::high_resolution_clock::now();
-			if (rpn::debug)
-			{
-				std::cout << "\b}\n";
-				mw::MessageWindow::getInstance().print("\b}\n");
-			}
-			if (!x_ints.empty())
-			{
-				sort(x_ints.begin(), x_ints.end());
-
-				std::vector<double> averagedInts;
-				averagedInts.reserve(x_ints.size());
-				double sum = 0;
-				int count = 0;
-				double currentGroupStart = x_ints[0];
-
-				for (int i = 0; i < x_ints.size(); ++i) {
-					if (std::fabs(x_ints[i] - currentGroupStart) <= threshold * 2) {
-						// Add to current group
-						sum += x_ints[i];
-						++count;
-					}
-					else {
-						// Average the current group and start a new group
-						averagedInts.push_back(sum / count);
-						currentGroupStart = x_ints[i];
-						sum = x_ints[i];
-						count = 1;
-					}
-				}
-
-				// Don't forget to add the last group
-				if (count > 0) {
-					averagedInts.push_back(sum / count);
-				}
-				x_ints = averagedInts;
-			}
-			std::chrono::duration<double, std::milli> duration = end_time - start_time;
-			for (auto& x : x_ints)
-			{
-				std::cout << "x = " << x << "\n";
-				mw::MessageWindow::getInstance().print("x = " + std::to_string(x) + "\n");
-			}
-			std::cout << "xint took " << duration.count() << "ms\n";
-			mw::MessageWindow::getInstance().print("xint took " + std::to_string(duration.count()) + "ms\n");
-			if (x_ints.size() == 0) return tok::OpToken(0);
-			return tok::OpToken(*x_ints.begin());
 		});	
 	func::add_builtin_func("plot_addr", 4, [](std::vector<std::vector<tok::OpToken>> s)
 		{
@@ -841,66 +893,21 @@ void load_builtin_functions(void)
 			mw::MessageWindow::getInstance().print("Plot took " + std::to_string(duration.count()) + "ms\n");
 			return tok::OpToken(ret);
 		});
-	// takes range begin, end, step, sole variable name, expression;
-	func::add_builtin_func("step", 5, [](std::vector<std::vector<tok::OpToken>> s)
-		{
-			check_first_param_type(s);
-			for (int i = 0; i < 3; i++)
-			{
-				rpn::sort(s[i]);
-			}
-			int tmp;
-			if (-1 != (tmp = check_param_types(s, { tok::val_token , tok::val_token, tok::val_token }))) return s[tmp][0]; // not checking last two params because can be any type
-			cmn::value step = s[2][0].GetValue();
-			if (step <= 0)
-			{
-				std::cerr << "Invalid input. Step must be greater than 0.\n";
-				mw::MessageWindow::getInstance().print("Invalid input. Step must be greater than 0.\n");
-				return tok::OpToken(0);
-			}
-			std::vector<size_t> idxs;
-			std::vector<tok::OpToken> expr_vec = s[4];
-			for (int i = 0; i < expr_vec.size(); i++)
-			{
-				if (expr_vec[i].GetType() == tok::FUNCTION && expr_vec[i].GetName() == s[3][0].GetName()) idxs.emplace_back(i);
-			}
-			cmn::value ret = 0;
-			cmn::value end = rpn::eval(s[1]);
-			cmn::value start = rpn::eval(s[0]);
-			std::cout << "{\n";
-			mw::MessageWindow::getInstance().print("{\n");
-			for (double n = start; (start > end) ? (n > end) : (n < end); n += (start > end) ? (-step) : (step))
-			{
-				auto expr_copy = expr_vec;
-				for (size_t idx : idxs)
-					expr_copy[idx] = tok::OpToken((cmn::value)n);
-				bool error = false;
-				auto collapse = func::collapse_function(expr_copy, error);
-				if (error)
-				{
-					return tok::OpToken(0);
-				}
-				rpn::sort(collapse);
-				ret = rpn::eval(collapse);
-				std::cout << "(x:" << n << ", y:" << ret << "),\n";
-				mw::MessageWindow::getInstance().print("(x:" + std::to_string(n) + ", y:" + std::to_string(ret) + "),\n");
-			}
-			std::cout << "\b}\n";
-			mw::MessageWindow::getInstance().print("\b}\n");
-			return tok::OpToken(ret);
-		});
 }
 
 
-void benchmark()
+void benchmark(unsigned int size = 200)
 {
 	calc.parse_expr("eX(x) = sum(0,100,n,(x^n)/fact(n))");
 	auto start_time = std::chrono::high_resolution_clock::now();
-	const int size = 200;
+	//const int size = 200;
 	for (int i = 0; i < size; i++)
 	{
 		std::cout << i << "\n";
+		calc.parse_expr("plot_add(x,5)"); 
+		std::this_thread::sleep_for(std::chrono::seconds(1));
 		calc.parse_expr("plot(-5,5,-5,5,x,eX(x))");
+		// sleep 1 second
 		//calc.clear();
 	}
 	auto end_time = std::chrono::high_resolution_clock::now();
@@ -915,9 +922,10 @@ int main(void)
 	load_builtin_functions();
 	calc.alternate_colors();
 	calc.parse_expr("plot(-10,10,-10,10,x,cos(x))");
+	calc.parse_expr("plot_add(x,5)");
 	calc.parse_expr("xint(x,sin(x))");
+	//benchmark();
 	calc.input_loop();
-	benchmark();
 	calc.parse_expr("eX(x) = sum(0,100,n,(x^n)/fact(n))");
 	calc.parse_expr("plot_add(x,eX(x))"); // graph of e^x
 	calc.parse_expr("plot_add(x,fact(x))");
